@@ -1,9 +1,9 @@
 # OBERHAHN SDKs
 
-Thin, server-side SDKs that wrap native AI-provider SDKs, extract token usage +
-attribution, and post canonical events to [OBERHAHN](https://oberhahn.com) for
-AI-spend monitoring. The SDK never prices anything — it reports token counts and
-the OBERHAHN server derives cost.
+Thin, server-side SDKs that wrap native AI-provider SDKs and report token usage +
+attribution to [OBERHAHN](https://oberhahn.com) — so you get visibility into your
+AI usage without changing how you make provider calls. Wrap your client once and
+keep calling it as before.
 
 This is a **multi-language monorepo**: one SDK per language, each self-contained
 in its own directory with its own build, tests, and packaging.

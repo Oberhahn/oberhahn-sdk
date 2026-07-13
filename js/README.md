@@ -4,12 +4,10 @@ A thin, server-side TypeScript SDK that wraps native provider SDKs, extracts
 token usage + attribution from each call, and posts canonical events to
 OBERHAHN's `POST /v0/events`.
 
-**Design intent:** the SDK is *thin*. Each adapter only extracts
-`{ model, model_provider, tokens, ids }` — it
- **never
-computes cost**. OBERHAHN's server derives cost from the token counts and fills
-`organization_id` / `consumer_id` / `date` from the `oak_` key. Adding a
-provider is a one-file change.
+Wrap your existing provider client once and keep calling it exactly as before —
+the SDK captures token usage and attribution from each call and reports it to
+OBERHAHN in the background. It stays out of the request path: no config to thread
+through your call sites, no buffering, and failures never break your calls.
 
 Phase 1 providers: **OpenAI, Anthropic, AWS Bedrock**. Provider SDKs are
 *optional peer dependencies* — install only what you use.
