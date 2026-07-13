@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { wrapBedrock } from "../src/index.js";
+import { wrap } from "../src/index.js";
 import { mapBedrockModel } from "../src/adapters/bedrock.js";
 import { initCapturing } from "./helpers.js";
 
@@ -31,8 +31,9 @@ describe("bedrock adapter", () => {
 
   it("extracts usage from a ConverseCommand and maps the model", async () => {
     const { client, calls } = initCapturing();
-    const bedrock = wrapBedrock(
+    const bedrock = wrap(
       fakeBedrock(() => ({ usage: { inputTokens: 500, outputTokens: 90 } })),
+      "bedrock",
     );
 
     await bedrock.send(new ConverseCommand({ modelId: "us.anthropic.claude-3-5-sonnet-20240620-v1:0" }));
@@ -51,7 +52,7 @@ describe("bedrock adapter", () => {
 
   it("ignores non-Converse commands (they pass through, no event)", async () => {
     const { client, calls } = initCapturing();
-    const bedrock = wrapBedrock(fakeBedrock(() => ({ modelSummaries: [] })));
+    const bedrock = wrap(fakeBedrock(() => ({ modelSummaries: [] })), "bedrock");
 
     const res = await bedrock.send(new ListFoundationModelsCommand());
     await client.awaitPending();
@@ -62,8 +63,9 @@ describe("bedrock adapter", () => {
 
   it("reads obMetadata off a Command instance without breaking the command", async () => {
     const { client, calls } = initCapturing();
-    const bedrock = wrapBedrock(
+    const bedrock = wrap(
       fakeBedrock(() => ({ usage: { inputTokens: 3, outputTokens: 1 } })),
+      "bedrock",
     );
     const cmd = new ConverseCommand({ modelId: "anthropic.claude-3-haiku-20240307-v1:0" });
     // Attach per-call attribution to the command instance (documented pattern).
@@ -85,13 +87,14 @@ describe("bedrock adapter", () => {
 
   it("reads usage from a ConverseStream metadata event", async () => {
     const { client, calls } = initCapturing();
-    const bedrock = wrapBedrock(
+    const bedrock = wrap(
       fakeBedrock(() => ({
         stream: (async function* () {
           yield { contentBlockDelta: { delta: { text: "hi" } } };
           yield { metadata: { usage: { inputTokens: 12, outputTokens: 4 } } };
         })(),
       })),
+      "bedrock",
     );
 
     const res = (await bedrock.send(

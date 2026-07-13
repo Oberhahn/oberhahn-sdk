@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { wrap, wrapAnthropic } from "../src/index.js";
+import { wrap } from "../src/index.js";
 import { initCapturing } from "./helpers.js";
 
 function fakeAnthropic(create?: (body: unknown) => unknown) {
@@ -63,7 +63,7 @@ describe("anthropic adapter", () => {
           })(),
       },
     };
-    const client2 = wrapAnthropic(anthropic);
+    const client2 = wrap(anthropic, "anthropic");
 
     const stream = await client2.messages.create({ model: "claude-3-5-sonnet", stream: true } as never);
     for await (const _ of stream as AsyncIterable<unknown>) void _;

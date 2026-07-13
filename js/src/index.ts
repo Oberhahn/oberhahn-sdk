@@ -33,14 +33,6 @@ export function wrap<T extends object>(client: T, provider: string, opts: WrapOp
   return patchClient(client, adapter, ensureClient(), opts);
 }
 
-/** Named shortcuts — same as `wrap(client, "<provider>")`. */
-export const wrapOpenAI = <T extends object>(client: T, opts: WrapOptions = {}): T =>
-  wrap(client, "openai", opts);
-export const wrapAnthropic = <T extends object>(client: T, opts: WrapOptions = {}): T =>
-  wrap(client, "anthropic", opts);
-export const wrapBedrock = <T extends object>(client: T, opts: WrapOptions = {}): T =>
-  wrap(client, "bedrock", opts);
-
 export type { OberhahnConfig } from "./config.js";
 export type { WrapOptions } from "./wrap.js";
 export type { OberhahnEvent } from "./event.js";

@@ -42,8 +42,6 @@ await openai.chat.completions.create({
   return the same client (typed as itself). Idempotent — re-wrapping never
   double-emits. Throws on an unknown provider; warns (and no-ops) if the client
   carries none of that provider's methods.
-- **`wrapOpenAI` / `wrapAnthropic` / `wrapBedrock`** — shortcuts for
-  `wrap(client, "<provider>")`.
 - **`obMetadata`** (or `ob_metadata`) on a request → per-call attribution;
   stripped from the args before the provider call is forwarded.
 
