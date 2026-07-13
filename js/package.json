@@ -1,0 +1,72 @@
+{
+  "name": "@oberhahn/sdk",
+  "version": "0.1.0",
+  "description": "Thin server-side SDK that wraps native provider SDKs, extracts token usage + attribution, and posts canonical events to OBERHAHN.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "smoke:stream": "npm run build && node scripts/smoke-stream.mjs"
+  },
+  "keywords": [
+    "oberhahn",
+    "llm",
+    "observability",
+    "token-usage",
+    "openai",
+    "anthropic",
+    "bedrock"
+  ],
+  "license": "MIT",
+  "author": "Pinata",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PinataCloud/oberhahn-sdk.git",
+    "directory": "js"
+  },
+  "homepage": "https://github.com/PinataCloud/oberhahn-sdk/tree/main/js#readme",
+  "bugs": "https://github.com/PinataCloud/oberhahn-sdk/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "*",
+    "@aws-sdk/client-bedrock-runtime": "*",
+    "openai": "*"
+  },
+  "peerDependenciesMeta": {
+    "openai": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1081.0",
+    "@types/node": "^22.10.0",
+    "openai": "^6.45.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

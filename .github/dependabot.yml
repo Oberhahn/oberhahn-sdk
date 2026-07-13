@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # @oberhahn/sdk (js/) dependencies. Provider SDKs are pinned devDependencies so
+  # Dependabot has concrete versions to bump; each bump triggers the `js` CI job
+  # (adapter contract tests + type-level drift canaries). Provider SDKs are
+  # intentionally NOT grouped, so a drift failure is localized to one provider.
+  - package-ecosystem: "npm"
+    directory: "/js"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "js"
+    groups:
+      # Group the SDK's own dev tooling to keep noise down; leave provider SDKs
+      # ungrouped (one PR each) for localized drift detection.
+      sdk-tooling:
+        patterns:
+          - "typescript"
+          - "vitest"
+          - "@types/*"
+
+  # Keep GitHub Actions pinned & current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"

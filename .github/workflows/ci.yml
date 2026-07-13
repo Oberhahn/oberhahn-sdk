@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One job per language SDK, path-filtered so a change to js/ only runs the JS
+# job (add a `python` job with an identical shape + `paths: [python/**]` later).
+jobs:
+  js:
+    name: js (@oberhahn/sdk)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: js/.nvmrc
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - run: npm ci
+      # Typecheck covers src + tests, incl. the provider-SDK drift canaries
+      # (test/contract.test.ts) — a Dependabot bump that changes a provider's
+      # response shape fails here.
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build

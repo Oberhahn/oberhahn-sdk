@@ -1,0 +1,49 @@
+/**
+ * The adapter contract — the SDK's single extension point.
+ *
+ * Adding a provider is one file: implement `Adapter`, register it in
+ * `registry.ts` under its provider slug. The caller selects it explicitly via
+ * `wrap(client, "<name>")`, so there is no structural detection to maintain —
+ * the `methods` list alone drives which functions get monkey-patched.
+ *
+ * Design rule (see the spec): an adapter only *extracts* `{ model,
+ * model_provider, tokens, ids }`. It never prices anything — the OBERHAHN
+ * server derives cost from the token counts.
+ */
+
+/** Canonical usage an adapter pulls out of a provider result. */
+export interface ProviderUsage {
+  /** Provider model id, e.g. "gpt-4o", "claude-3-5-sonnet". */
+  model: string;
+  /** Canonical provider slug, e.g. "openai" | "anthropic". */
+  model_provider: string;
+  input_tokens: number;
+  output_tokens: number;
+  /** Cache-creation tokens, when the provider reports the split. */
+  cache_write_tokens?: number;
+  /** Cache-read tokens, when the provider reports the split. */
+  cache_read_tokens?: number;
+  /** Provider's own message/response id, when present. */
+  provider_message_id?: string;
+}
+
+export interface MethodSpec {
+  /** Dotted method path on the client, e.g. "chat.completions.create". */
+  path: string;
+  /** Given the (obMetadata-stripped) call args, is this a streaming call? */
+  isStream?: (args: unknown[]) => boolean;
+  /** Pull usage from a resolved non-stream result. `null` → don't emit. */
+  extract(result: unknown, args: unknown[]): ProviderUsage | null;
+  /**
+   * Pull usage from the collected chunks of a streamed call. `null` → don't
+   * emit. Only invoked when `isStream(args)` is true; required for any method
+   * that can stream.
+   */
+  extractStream?(chunks: unknown[], args: unknown[]): ProviderUsage | null;
+}
+
+export interface Adapter {
+  /** Canonical provider slug, also used in the event `source` (`sdk_<name>`). */
+  name: string;
+  methods: MethodSpec[];
+}
