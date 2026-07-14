@@ -7,7 +7,7 @@ token counts. The SDK never prices anything.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ._types import ProviderUsage
 
@@ -18,6 +18,9 @@ def build_event(
     usage: ProviderUsage,
     routed: Dict[str, Any],
     adapter_name: str,
+    *,
+    duration_ms: Optional[int] = None,
+    status: str = "success",
 ) -> Dict[str, Any]:
     cache_write = usage.cache_write_tokens
     cache_read = usage.cache_read_tokens
@@ -42,7 +45,10 @@ def build_event(
         "source": f"sdk_{adapter_name}",
         "consumer_type": routed.get("consumer_type") or DEFAULT_CONSUMER_TYPE,
         "spend_details": spend_details,
+        "status": status,
     }
+    if duration_ms is not None:
+        event["duration_ms"] = duration_ms
     if routed.get("consumer_id"):
         event["consumer_id"] = routed["consumer_id"]
     if routed.get("task_id"):

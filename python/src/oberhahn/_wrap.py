@@ -10,6 +10,7 @@ results so the caller sees every chunk unchanged while usage is collected.
 from __future__ import annotations
 
 import inspect
+import time
 import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -17,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from ._client import OberhahnClient
 from ._event import build_event
 from ._metadata import route_metadata
-from ._types import Adapter, MethodSpec
+from ._types import Adapter, MethodSpec, ProviderUsage
 
 #: Marker so a client (and each patched method) is only wrapped once.
 _WRAPPED = "_oberhahn_wrapped"
@@ -31,6 +32,7 @@ class _Ctx:
     per_call: Dict[str, Any]
     kwargs: Dict[str, Any]
     spec: MethodSpec
+    start: float = 0.0  # time.monotonic() captured just before the provider call
 
 
 def patch_client(
@@ -82,8 +84,12 @@ def _patch_method(
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         cleaned_kwargs, per_call = _strip_ob_metadata(kwargs)
         is_stream = spec.is_stream(cleaned_kwargs) if spec.is_stream else False
-        ctx = _Ctx(ob, adapter_name, client_metadata, per_call, cleaned_kwargs, spec)
-        result = original(*args, **cleaned_kwargs)
+        ctx = _Ctx(ob, adapter_name, client_metadata, per_call, cleaned_kwargs, spec, time.monotonic())
+        try:
+            result = original(*args, **cleaned_kwargs)
+        except BaseException:
+            _safe_emit_error(ctx)  # the provider call itself failed
+            raise
         if inspect.isawaitable(result):
             return _async_finish(result, is_stream, ctx)
         return _finish(result, is_stream, ctx)
@@ -125,19 +131,57 @@ def _finish(result: Any, is_stream: bool, ctx: _Ctx) -> Any:
 
 
 async def _async_finish(awaitable: Any, is_stream: bool, ctx: _Ctx) -> Any:
-    result = await awaitable
+    try:
+        result = await awaitable
+    except BaseException:
+        _safe_emit_error(ctx)  # the awaited provider call failed
+        raise
     return _finish(result, is_stream, ctx)
+
+
+def _duration_ms(ctx: _Ctx) -> int:
+    return int((time.monotonic() - ctx.start) * 1000)
 
 
 def _emit(usage: Any, ctx: _Ctx) -> None:
     if usage is None:
         return
     routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
-    ctx.ob.submit(build_event(usage, routed, ctx.adapter_name))
+    ctx.ob.submit(
+        build_event(usage, routed, ctx.adapter_name, duration_ms=_duration_ms(ctx), status="success")
+    )
 
 
-def _make_on_done(ctx: _Ctx) -> Callable[[List[Any]], None]:
-    def on_done(chunks: List[Any]) -> None:
+def _emit_error(ctx: _Ctx) -> None:
+    """Emit a zero-token event with ``status="error"`` for a failed call."""
+    if ctx.spec.model_info is not None:
+        info = ctx.spec.model_info(ctx.kwargs)
+    else:
+        info = (ctx.adapter_name, ctx.kwargs.get("model") or "unknown")
+    if info is None:
+        return  # adapter says this call isn't a billable operation — skip
+    provider, model = info
+    usage = ProviderUsage(model=model, model_provider=provider, input_tokens=0, output_tokens=0)
+    routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
+    ctx.ob.submit(
+        build_event(usage, routed, ctx.adapter_name, duration_ms=_duration_ms(ctx), status="error")
+    )
+
+
+def _safe_emit_error(ctx: _Ctx) -> None:
+    """Record the error event, but never let a reporting failure mask the
+    caller's original exception — swallow anything raised here."""
+    try:
+        _emit_error(ctx)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _make_on_done(ctx: _Ctx) -> Callable[..., None]:
+    def on_done(chunks: List[Any], errored: bool = False) -> None:
+        if errored:
+            _safe_emit_error(ctx)
+            return
         try:
             usage = ctx.spec.extract_stream(chunks, ctx.kwargs) if ctx.spec.extract_stream else None
             _emit(usage, ctx)
@@ -202,25 +246,29 @@ class _TeeSync:
     tee iteration, emitting usage when the stream is exhausted or closed.
     """
 
-    def __init__(self, inner: Any, on_done: Callable[[List[Any]], None]) -> None:
+    def __init__(self, inner: Any, on_done: Callable[..., None]) -> None:
         self._inner = inner
         self._on_done = on_done
         self._chunks: List[Any] = []
         self._finished = False
 
     def __iter__(self) -> Any:
+        errored = False
         try:
             for chunk in self._inner:
                 self._chunks.append(chunk)
                 yield chunk
+        except BaseException:  # stream failed mid-flight
+            errored = True
+            raise
         finally:
-            self._done()
+            self._done(errored)
 
-    def _done(self) -> None:
+    def _done(self, errored: bool = False) -> None:
         if self._finished:
             return
         self._finished = True
-        self._on_done(self._chunks)
+        self._on_done(self._chunks, errored)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._inner, name)
@@ -236,25 +284,29 @@ class _TeeSync:
 class _TeeAsync:
     """Async counterpart of :class:`_TeeSync`."""
 
-    def __init__(self, inner: Any, on_done: Callable[[List[Any]], None]) -> None:
+    def __init__(self, inner: Any, on_done: Callable[..., None]) -> None:
         self._inner = inner
         self._on_done = on_done
         self._chunks: List[Any] = []
         self._finished = False
 
     async def __aiter__(self) -> Any:
+        errored = False
         try:
             async for chunk in self._inner:
                 self._chunks.append(chunk)
                 yield chunk
+        except BaseException:  # stream failed mid-flight
+            errored = True
+            raise
         finally:
-            self._done()
+            self._done(errored)
 
-    def _done(self) -> None:
+    def _done(self, errored: bool = False) -> None:
         if self._finished:
             return
         self._finished = True
-        self._on_done(self._chunks)
+        self._on_done(self._chunks, errored)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._inner, name)

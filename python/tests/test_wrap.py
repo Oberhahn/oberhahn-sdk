@@ -133,6 +133,55 @@ def test_retries_retryable_ingest_failures():
     assert attempts["n"] == 2
 
 
+def test_success_event_has_status_and_duration():
+    client, calls = init_capturing()
+    openai = oberhahn.wrap(
+        fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
+        "openai",
+    )
+    openai.chat.completions.create(model="gpt-4o")
+    client.await_pending()
+    assert calls[0].body["status"] == "success"
+    assert isinstance(calls[0].body["duration_ms"], int)
+    assert calls[0].body["duration_ms"] >= 0
+
+
+def test_failed_call_emits_error_event_and_reraises():
+    def boom(_b):
+        raise RuntimeError("provider down")
+
+    client, calls = init_capturing()
+    openai = oberhahn.wrap(fake_openai(boom), "openai")
+
+    with pytest.raises(RuntimeError, match="provider down"):
+        openai.chat.completions.create(model="gpt-4o")
+    client.await_pending()
+
+    assert len(calls) == 1
+    body = calls[0].body
+    assert body["status"] == "error"
+    assert isinstance(body["duration_ms"], int)
+    assert body["spend_details"] == {
+        "model_provider": "openai",
+        "model": "gpt-4o",  # resolved from kwargs, since there's no result
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+    }
+
+
+def test_error_reporting_failure_never_masks_original_exception(monkeypatch):
+    # Even if event submission blows up, the caller must see THEIR error.
+    client, _calls = init_capturing()
+    openai = oberhahn.wrap(
+        fake_openai(lambda _b: (_ for _ in ()).throw(RuntimeError("provider down"))),
+        "openai",
+    )
+    monkeypatch.setattr(client, "submit", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("submit boom")))
+    with pytest.raises(RuntimeError, match="provider down"):
+        openai.chat.completions.create(model="gpt-4o")
+
+
 def test_module_level_flush_drains_pending():
     _client, calls = init_capturing()
     openai = oberhahn.wrap(

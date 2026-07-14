@@ -40,6 +40,13 @@ export interface MethodSpec {
    * that can stream.
    */
   extractStream?(chunks: unknown[], args: unknown[]): ProviderUsage | null;
+  /**
+   * Resolve `{ model_provider, model }` from the call args alone (no result),
+   * for emitting an *error* event when the provider call throws. Return `null`
+   * to skip emitting for this call (e.g. a non-usage-bearing command). When
+   * omitted, defaults to `{ model_provider: <adapter>, model: args[0].model }`.
+   */
+  modelInfo?(args: unknown[]): { model_provider: string; model: string } | null;
 }
 
 export interface Adapter {

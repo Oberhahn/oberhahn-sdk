@@ -98,6 +98,36 @@ describe("client behavior", () => {
     expect(attempts).toBe(2);
   });
 
+  it("stamps status=success and duration_ms on a successful event", async () => {
+    const { client, calls } = initCapturing();
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+
+    await openai.chat.completions.create({ model: "gpt-4o" } as never);
+    await client.awaitPending();
+    expect(calls[0].body.status).toBe("success");
+    expect(typeof calls[0].body.duration_ms).toBe("number");
+    expect(calls[0].body.duration_ms as number).toBeGreaterThanOrEqual(0);
+  });
+
+  it("emits a status=error event and re-throws when the provider call fails", async () => {
+    const { client, calls } = initCapturing();
+    const openai = wrap(
+      fakeOpenAI(() => {
+        throw new Error("provider down");
+      }),
+      "openai",
+    );
+
+    await expect(openai.chat.completions.create({ model: "gpt-4o" } as never)).rejects.toThrow("provider down");
+    await client.awaitPending();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toMatchObject({
+      status: "error",
+      spend_details: { model_provider: "openai", model: "gpt-4o", input_tokens: 0, output_tokens: 0 },
+    });
+  });
+
   it("flush() drains pending submissions (no client handle needed)", async () => {
     const { calls } = initCapturing();
     const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");

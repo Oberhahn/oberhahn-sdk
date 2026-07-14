@@ -14,7 +14,7 @@ derives cost from the token counts.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 
 @dataclass
@@ -47,6 +47,11 @@ ExtractStream = Callable[[List[Any], dict], Optional[ProviderUsage]]
 #: streaming call?
 IsStream = Callable[[dict], bool]
 
+#: ``(kwargs) -> (model_provider, model) | None``. Resolve provider + model from
+#: the call kwargs alone (no result), for emitting an *error* event when the
+#: provider call raises. Return ``None`` to skip emitting for this call.
+ModelInfo = Callable[[dict], "Optional[Tuple[str, str]]"]
+
 
 @dataclass
 class MethodSpec:
@@ -61,6 +66,9 @@ class MethodSpec:
     #: Pull usage from the collected chunks of a streamed call. Required for any
     #: method that can stream.
     extract_stream: Optional[ExtractStream] = None
+    #: Resolve (provider, model) from kwargs for error events. Defaults to
+    #: ``(adapter.name, kwargs["model"])`` when not set.
+    model_info: Optional[ModelInfo] = None
 
 
 @dataclass

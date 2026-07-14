@@ -71,15 +71,22 @@ def _extract_stream(chunks: List[Any], kwargs: Dict[str, Any]) -> Optional[Provi
     return None
 
 
+def _model_info(kwargs: Dict[str, Any]):
+    """Provider + model from the request kwargs alone, for error events."""
+    mapped = map_bedrock_model(kwargs.get("modelId") or "")
+    return (mapped["provider"], mapped["model"] or "unknown")
+
+
 bedrock_adapter = Adapter(
     name=PROVIDER,
     methods=[
-        MethodSpec(path="converse", extract=_extract),
+        MethodSpec(path="converse", extract=_extract, model_info=_model_info),
         MethodSpec(
             path="converse_stream",
             is_stream=lambda _kwargs: True,
             extract=_extract,  # never called (always a stream); present for symmetry
             extract_stream=_extract_stream,
+            model_info=_model_info,
         ),
     ],
 )

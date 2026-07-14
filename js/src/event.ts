@@ -24,6 +24,10 @@ export interface OberhahnEvent {
     cache_write_tokens?: number;
     cache_read_tokens?: number;
   };
+  /** `"success"` for a completed call, `"error"` when the provider call threw. */
+  status: string;
+  /** Wall-clock duration of the provider call, in milliseconds. */
+  duration_ms?: number;
   custom?: Record<string, string>;
 }
 
@@ -33,6 +37,7 @@ export function buildEvent(
   usage: ProviderUsage,
   routed: RoutedMetadata,
   adapterName: string,
+  opts: { durationMs?: number; status?: string } = {},
 ): OberhahnEvent {
   const cacheWrite = usage.cache_write_tokens;
   const cacheRead = usage.cache_read_tokens;
@@ -55,7 +60,9 @@ export function buildEvent(
     source: `sdk_${adapterName}`,
     consumer_type: routed.consumer_type ?? DEFAULT_CONSUMER_TYPE,
     spend_details,
+    status: opts.status ?? "success",
   };
+  if (opts.durationMs !== undefined) event.duration_ms = opts.durationMs;
   if (routed.consumer_id) event.consumer_id = routed.consumer_id;
   if (routed.task_id) event.task_id = routed.task_id;
   if (routed.provider_session_id) event.provider_session_id = routed.provider_session_id;

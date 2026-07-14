@@ -18,6 +18,8 @@ interface EmitContext {
   perCall: Record<string, unknown>;
   args: unknown[];
   spec: MethodSpec;
+  /** `Date.now()` captured just before the provider call, for `duration_ms`. */
+  start: number;
 }
 
 /**
@@ -71,8 +73,22 @@ function patchMethod(
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
     const { cleanedArgs, perCall } = stripObMetadata(args);
     const isStream = spec.isStream?.(cleanedArgs) ?? false;
-    const ctx: EmitContext = { ob, adapterName, clientMetadata, perCall, args: cleanedArgs, spec };
-    const result = (original as (...a: unknown[]) => unknown).apply(this, cleanedArgs);
+    const ctx: EmitContext = {
+      ob,
+      adapterName,
+      clientMetadata,
+      perCall,
+      args: cleanedArgs,
+      spec,
+      start: Date.now(),
+    };
+    let result: unknown;
+    try {
+      result = (original as (...a: unknown[]) => unknown).apply(this, cleanedArgs);
+    } catch (err) {
+      safeEmitError(ctx); // synchronous provider failure
+      throw err;
+    }
     return handleResult(result, isStream, ctx);
   };
   Object.defineProperty(wrapped, WRAPPED, { value: true, enumerable: false });
@@ -128,7 +144,13 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 function handleResult(result: unknown, isStream: boolean, ctx: EmitContext): unknown {
   if (result && typeof (result as { then?: unknown }).then === "function") {
-    return (result as Promise<unknown>).then((resolved) => finish(resolved, isStream, ctx));
+    return (result as Promise<unknown>).then(
+      (resolved) => finish(resolved, isStream, ctx),
+      (err) => {
+        safeEmitError(ctx); // the awaited provider call rejected
+        throw err;
+      },
+    );
   }
   return finish(result, isStream, ctx);
 }
@@ -148,7 +170,40 @@ function finish(resolved: unknown, isStream: boolean, ctx: EmitContext): unknown
 function emit(usage: ProviderUsage | null, ctx: EmitContext): void {
   if (!usage) return;
   const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
-  ctx.ob.submit(buildEvent(usage, routed, ctx.adapterName));
+  ctx.ob.submit(
+    buildEvent(usage, routed, ctx.adapterName, { durationMs: Date.now() - ctx.start, status: "success" }),
+  );
+}
+
+/** Emit a zero-token `status:"error"` event for a failed call. */
+function emitError(ctx: EmitContext): void {
+  const info = ctx.spec.modelInfo
+    ? ctx.spec.modelInfo(ctx.args)
+    : {
+        model_provider: ctx.adapterName,
+        model: ((ctx.args[0] as { model?: string } | undefined)?.model ?? "unknown"),
+      };
+  if (!info) return; // adapter says this call isn't a billable operation — skip
+  const usage: ProviderUsage = {
+    model: info.model,
+    model_provider: info.model_provider,
+    input_tokens: 0,
+    output_tokens: 0,
+  };
+  const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
+  ctx.ob.submit(
+    buildEvent(usage, routed, ctx.adapterName, { durationMs: Date.now() - ctx.start, status: "error" }),
+  );
+}
+
+/** Record the error event, but never let a reporting failure mask the caller's
+ * original exception — swallow anything thrown here. */
+function safeEmitError(ctx: EmitContext): void {
+  try {
+    emitError(ctx);
+  } catch {
+    /* attribution must never break the caller's error path */
+  }
 }
 
 /**
@@ -193,9 +248,13 @@ function teeIterable<T extends object>(iterable: T, ctx: EmitContext): T {
           const inner = (target as unknown as AsyncIterable<unknown>)[Symbol.asyncIterator]();
           const chunks: unknown[] = [];
           let finished = false;
-          const done = () => {
+          const done = (errored: boolean) => {
             if (finished) return;
             finished = true;
+            if (errored) {
+              safeEmitError(ctx); // stream failed mid-flight
+              return;
+            }
             try {
               emit(ctx.spec.extractStream?.(chunks, ctx.args) ?? null, ctx);
             } catch (err) {
@@ -204,17 +263,23 @@ function teeIterable<T extends object>(iterable: T, ctx: EmitContext): T {
           };
           return {
             async next(...a: unknown[]) {
-              const r = await inner.next(...(a as []));
-              if (r.done) done();
+              let r;
+              try {
+                r = await inner.next(...(a as []));
+              } catch (err) {
+                done(true);
+                throw err;
+              }
+              if (r.done) done(false);
               else chunks.push(r.value);
               return r;
             },
             async return(value?: unknown) {
-              done();
+              done(false);
               return inner.return ? inner.return(value) : { value, done: true };
             },
             async throw(err?: unknown) {
-              done();
+              done(true);
               if (inner.throw) return inner.throw(err);
               throw err;
             },

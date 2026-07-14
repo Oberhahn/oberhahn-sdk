@@ -61,6 +61,14 @@ const methods: MethodSpec[] = [
       ) as { metadata?: { usage?: BedrockUsage } } | undefined;
       return toUsage(metaChunk?.metadata?.usage, args);
     },
+    // For error events: only Converse commands are billable operations; skip
+    // anything else (e.g. a failed ListFoundationModels) by returning null.
+    modelInfo: (args) => {
+      const name = commandName(args);
+      if (name !== "ConverseCommand" && name !== "ConverseStreamCommand") return null;
+      const { provider, model } = mapBedrockModel(modelIdFrom(args));
+      return { model_provider: provider, model: model || "unknown" };
+    },
   },
 ];
 

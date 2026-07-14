@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
+import pytest
 from helpers import init_capturing
 
 import oberhahn
@@ -90,6 +91,24 @@ def test_routes_ob_metadata_off_kwargs():
     assert calls[0].body["provider_session_id"] == "conv_1"
     assert calls[0].body["custom"] == {"customer_id": "cust_9"}
     assert calls[0].body["spend_details"]["model"] == "claude-3-haiku"
+
+
+def test_failed_converse_emits_error_event_with_mapped_model():
+    def boom(_k):
+        raise RuntimeError("bedrock down")
+
+    client, calls = init_capturing()
+    bedrock = oberhahn.wrap(fake_bedrock(boom), "bedrock")
+
+    with pytest.raises(RuntimeError, match="bedrock down"):
+        bedrock.converse(modelId="us.anthropic.claude-3-5-sonnet-20240620-v1:0", messages=[])
+    client.await_pending()
+
+    assert len(calls) == 1
+    assert calls[0].body["status"] == "error"
+    assert calls[0].body["spend_details"]["model"] == "claude-3-5-sonnet"
+    assert calls[0].body["spend_details"]["model_provider"] == "anthropic"
+    assert calls[0].body["spend_details"]["input_tokens"] == 0
 
 
 def test_reads_usage_from_converse_stream():
