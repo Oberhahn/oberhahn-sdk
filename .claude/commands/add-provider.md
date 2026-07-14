@@ -100,7 +100,22 @@ Then confirm the wrapper actually patches a real client instance:
 `wrap(new <Provider>(...), "<slug>")` and check the method carries
 `_oberhahn_wrapped`.
 
-## Step 7 — Report
+## Step 7 — Open the PR
+
+Push the branch and open a PR (don't leave just a branch + link):
+
+```sh
+gh pr create --base main --title "feat: add <slug> as an SDK provider" \
+  --body "Closes #<issue>. <summary>"
+```
+
+Adding a provider should touch: the two `adapters/<slug>` files, the two
+registries (via scaffold), the deps, the tests + drift canaries, **one
+smoke-table entry per language** (`SMOKE_PROVIDERS` in `_smoke_common.py` /
+`smoke-providers.mjs`) — and nothing in the READMEs (they don't enumerate
+providers).
+
+## Step 8 — Report
 
 Summarize: the fields you mapped (with any quirk), files changed, dep versions
 pinned, and the passing test/typecheck output. Note anything you couldn't verify

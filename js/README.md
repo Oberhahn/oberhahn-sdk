@@ -9,8 +9,10 @@ the SDK captures token usage and attribution from each call and reports it to
 OBERHAHN in the background. It stays out of the request path: no config to thread
 through your call sites, no buffering, and failures never break your calls.
 
-Providers: **OpenAI, Anthropic, AWS Bedrock, Google Gemini**. Provider SDKs are
-*optional peer dependencies* — install only what you use.
+Supports OpenAI, Anthropic, AWS Bedrock, Google Gemini, and more — call
+`knownProviders()` for the live list (it's the source of truth; new providers
+are one-file adapters). Provider SDKs are *optional peer dependencies* — install
+only what you use.
 
 ## Usage
 
@@ -34,9 +36,9 @@ await openai.chat.completions.create({
 ## API
 
 - **`init(config)`** — set global config (also read from env). Returns the client.
-- **`wrap(client, provider, opts?)`** — patch the named provider's
-  (`"openai"` | `"anthropic"` | `"bedrock"` | `"gemini"`) usage-bearing methods in place, and
-  return the same client (typed as itself). Idempotent — re-wrapping never
+- **`wrap(client, provider, opts?)`** — patch the named provider's usage-bearing
+  methods in place and return the same client (typed as itself). `provider` is a
+  registered slug (see `knownProviders()`). Idempotent — re-wrapping never
   double-emits. Throws on an unknown provider; warns (and no-ops) if the client
   carries none of that provider's methods.
 - **`obMetadata`** (or `ob_metadata`) on a request → per-call attribution;

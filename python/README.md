@@ -9,20 +9,21 @@ the SDK captures token usage and attribution from each call and reports it to
 OBERHAHN in the background. It stays out of the request path: no config to thread
 through your call sites, no buffering, and failures never break your calls.
 
-Providers: **OpenAI, Anthropic, AWS Bedrock, Google Gemini**. Provider SDKs are
-*optional* — install only what you use.
+Supports OpenAI, Anthropic, AWS Bedrock, Google Gemini, and more — call
+`known_providers()` for the live list (it's the source of truth; new providers
+are one-file adapters). Provider SDKs are *optional* — install only what you use.
 
 ## Install
 
 ```sh
-pip install oberhahn                 # core (no provider SDKs)
-pip install "oberhahn[openai]"       # + openai
-pip install "oberhahn[anthropic]"    # + anthropic
-pip install "oberhahn[bedrock]"      # + boto3
-pip install "oberhahn[gemini]"       # + google-genai
+pip install oberhahn                  # core only (no provider SDKs)
+pip install "oberhahn[openai]"        # + one extra per provider you use:
+                                      #   openai | anthropic | bedrock | gemini | …
 ```
 
-The core package has **no required dependencies** (standard library only).
+The core package has **no required dependencies** (standard library only). Each
+provider is an optional extra (see `[project.optional-dependencies]` in
+`pyproject.toml`).
 
 ## Usage
 
@@ -51,10 +52,10 @@ Works the same for `AsyncOpenAI` / `AsyncAnthropic` — `await` the call as usua
 
 - **`init(**config)`** — set global config (also read from env). Returns the client.
 - **`wrap(client, provider, *, metadata=None)`** — patch the named provider's
-  (`"openai"` | `"anthropic"` | `"bedrock"` | `"gemini"`) usage-bearing methods in place, and
-  return the same client. Idempotent — re-wrapping never double-emits. Raises on an
-  unknown provider; warns (and no-ops) if the client carries none of that
-  provider's methods.
+  usage-bearing methods in place and return the same client. `provider` is a
+  registered slug (see `known_providers()`). Idempotent — re-wrapping never
+  double-emits. Raises on an unknown provider; warns (and no-ops) if the client
+  carries none of that provider's methods.
 - **`ob_metadata`** (or `obMetadata`) as a keyword argument on a request →
   per-call attribution; stripped from the kwargs before the provider call is
   forwarded.

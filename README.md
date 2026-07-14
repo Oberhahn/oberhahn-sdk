@@ -14,7 +14,7 @@ in its own directory with its own build, tests, and packaging.
 | Python          | `oberhahn`      | [`python/`](./python)      | ✅      |
 
 Each SDK shares the same shape: `init()` once, then `wrap(client, "<provider>")`
-to instrument OpenAI / Anthropic / Bedrock / Gemini clients in place. See the per-language
+to instrument your provider clients in place. See the per-language
 README for install and usage — start with [`js/README.md`](./js/README.md).
 
 ## Repository layout

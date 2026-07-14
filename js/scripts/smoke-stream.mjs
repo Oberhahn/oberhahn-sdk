@@ -15,7 +15,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { init, wrap } from "../dist/index.js";
+import { init } from "../dist/index.js";
+import { chooseProvider, runSmoke } from "./smoke-providers.mjs";
 
 const envPath = join(dirname(dirname(fileURLToPath(import.meta.url))), ".env");
 if (typeof process.loadEnvFile === "function" && existsSync(envPath)) {
@@ -47,92 +48,6 @@ const oberhahn = init({
   onError: (err) => console.error("  submit error:", err?.message ?? err),
 });
 
-async function runOpenAI() {
-  const { default: OpenAI } = await import("openai");
-  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
-  const openai = wrap(new OpenAI(), "openai");
-  console.log(`  provider : openai (${model}, streaming)`);
-  const stream = await openai.chat.completions.create({
-    model,
-    max_tokens: 100,
-    // Without include_usage OpenAI streams carry NO usage block → nothing to emit.
-    stream: true,
-    stream_options: { include_usage: true },
-    messages: [{ role: "user", content: "Give me a 200 word paragraph." }],
-    obMetadata: { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" },
-  });
-  let text = "";
-  for await (const chunk of stream) {
-    text += chunk.choices?.[0]?.delta?.content ?? "";
-  }
-  return { text };
-}
-
-async function runAnthropic() {
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
-  const anthropic = wrap(new Anthropic(), "anthropic");
-  console.log(`  provider : anthropic (${model}, streaming)`);
-  const stream = await anthropic.messages.create({
-    model,
-    max_tokens: 100,
-    stream: true,
-    messages: [{ role: "user", content: "Give me a 200 word paragraph." }],
-    obMetadata: { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" },
-  });
-  let text = "";
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
-      text += event.delta.text;
-    }
-  }
-  return { text };
-}
-
-async function runBedrock() {
-  const { BedrockRuntimeClient, ConverseStreamCommand } = await import("@aws-sdk/client-bedrock-runtime");
-  const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
-  if (!region) die("Set AWS_REGION for the Bedrock streaming smoke (plus AWS credentials).");
-  const modelId = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-haiku-20241022-v1:0";
-  const client = wrap(new BedrockRuntimeClient({ region }), "bedrock");
-  console.log(`  provider : bedrock (${modelId}, ${region}, streaming)`);
-  const command = new ConverseStreamCommand({
-    modelId,
-    messages: [{ role: "user", content: [{ text: "Give me a 200 word paragraph" }] }],
-    inferenceConfig: { maxTokens: 16 },
-  });
-  // Per-call attribution on the command instance (SDK strips it before send).
-  Object.assign(command, {
-    obMetadata: { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" },
-  });
-  const res = await client.send(command);
-  let text = "";
-  for await (const event of res.stream) {
-    text += event.contentBlockDelta?.delta?.text ?? "";
-  }
-  return { text };
-}
-
-async function runGemini() {
-  const { GoogleGenAI } = await import("@google/genai");
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-  const gemini = wrap(
-    new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }),
-    "gemini",
-  );
-  console.log(`  provider : gemini (${model}, streaming)`);
-  const stream = await gemini.models.generateContentStream({
-    model,
-    contents: "Give me a 200 word paragraph.",
-    obMetadata: { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" },
-  });
-  let text = "";
-  for await (const chunk of stream) {
-    text += chunk.text ?? "";
-  }
-  return { text };
-}
-
 async function readBack() {
   // Filter on our custom tag via the supported `filter=key:value` form (a bare
   // ?smoke_id=… is silently ignored by GET /events and would false-pass).
@@ -157,30 +72,11 @@ async function readBack() {
 }
 
 async function main() {
-  const hasAws =
-    !!process.env.AWS_ACCESS_KEY_ID || !!process.env.AWS_BEARER_TOKEN_BEDROCK || !!process.env.AWS_REGION;
-  const hasGemini = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
-  const provider =
-    process.env.OBERHAHN_SMOKE_PROVIDER ??
-    (process.env.OPENAI_API_KEY
-      ? "openai"
-      : process.env.ANTHROPIC_API_KEY
-        ? "anthropic"
-        : hasAws
-          ? "bedrock"
-          : hasGemini
-            ? "gemini"
-            : null);
-  if (!provider) {
-    die("No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or GEMINI_API_KEY.");
-  }
-  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock, gemini: runGemini };
-  const run = runners[provider];
-  if (!run) die(`Streaming smoke supports openai|anthropic|bedrock|gemini, not "${provider}".`);
+  const provider = chooseProvider();
+  const meta = { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" };
 
   console.log("\n→ making real streaming provider call…");
-  const { text } = await run();
-  console.log(`  stream drained. text: ${JSON.stringify(text)}`);
+  await runSmoke(provider, true, meta);
 
   console.log("\n→ waiting for the event POST to complete…");
   await oberhahn.awaitPending();

@@ -20,11 +20,13 @@ import random
 import time
 
 from _smoke_common import (
+    choose_provider,
     die,
     load_env_file,
     make_smoke_metadata,
     metadata_mismatches,
     read_back,
+    run_smoke,
 )
 
 load_env_file()
@@ -53,110 +55,11 @@ oberhahn_client = oberhahn.init(
 )
 
 
-def run_openai():
-    from openai import OpenAI
-
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-    client = oberhahn.wrap(OpenAI(), "openai")
-    print(f"  provider : openai ({model})")
-    stream = client.chat.completions.create(
-        model=model,
-        max_tokens=100,
-        messages=[{"role": "user", "content": "Give me a 200 word paragraph."}],
-        stream=True,
-        stream_options={"include_usage": True},
-        ob_metadata=META,
-    )
-    chunks = 0
-    for _ in stream:
-        chunks += 1
-    print(f"  consumed {chunks} chunk(s)")
-
-
-def run_anthropic():
-    from anthropic import Anthropic
-
-    model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
-    client = oberhahn.wrap(Anthropic(), "anthropic")
-    print(f"  provider : anthropic ({model})")
-    stream = client.messages.create(
-        model=model,
-        max_tokens=100,
-        messages=[{"role": "user", "content": "Give me a 200 word paragraph."}],
-        stream=True,
-        ob_metadata=META,
-    )
-    chunks = 0
-    for _ in stream:
-        chunks += 1
-    print(f"  consumed {chunks} event(s)")
-
-
-def run_bedrock():
-    import boto3
-
-    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
-    if not region:
-        die("Set AWS_REGION for the Bedrock streaming smoke (plus AWS credentials).")
-    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
-    client = oberhahn.wrap(boto3.client("bedrock-runtime", region_name=region), "bedrock")
-    print(f"  provider : bedrock ({model_id}, {region})")
-    res = client.converse_stream(
-        modelId=model_id,
-        messages=[{"role": "user", "content": [{"text": "Give me a 200 word paragraph"}]}],
-        inferenceConfig={"maxTokens": 16},
-        ob_metadata=META,
-    )
-    chunks = 0
-    for _ in res["stream"]:
-        chunks += 1
-    print(f"  consumed {chunks} event(s)")
-
-
-def run_gemini():
-    from google import genai
-
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-    client = oberhahn.wrap(genai.Client(), "gemini")
-    print(f"  provider : gemini ({model})")
-    stream = client.models.generate_content_stream(
-        model=model,
-        contents="Give me a 200 word paragraph.",
-        ob_metadata=META,
-    )
-    chunks = 0
-    for _ in stream:
-        chunks += 1
-    print(f"  consumed {chunks} chunk(s)")
-
-
-RUNNERS = {
-    "openai": run_openai,
-    "anthropic": run_anthropic,
-    "bedrock": run_bedrock,
-    "gemini": run_gemini,
-}
-
-
-def _detect_provider():
-    if os.environ.get("OPENAI_API_KEY"):
-        return "openai"
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return "anthropic"
-    if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_BEARER_TOKEN_BEDROCK") or os.environ.get("AWS_REGION"):
-        return "bedrock"
-    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
-        return "gemini"
-    return None
-
-
 def main() -> None:
-    provider = os.environ.get("OBERHAHN_SMOKE_PROVIDER") or _detect_provider()
-    if provider not in RUNNERS:
-        die("Streaming smoke supports openai | anthropic | bedrock | gemini. Set a provider credential.")
+    provider = choose_provider()
 
     print("\n→ making real streaming provider call…")
-    RUNNERS[provider]()
+    run_smoke(provider, streaming=True, meta=META)
 
     print("\n→ waiting for the event POST to complete…")
     oberhahn_client.await_pending()

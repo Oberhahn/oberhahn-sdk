@@ -26,7 +26,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { init, wrap } from "../dist/index.js";
+import { init } from "../dist/index.js";
+import { chooseProvider, runSmoke } from "./smoke-providers.mjs";
 
 // Load sdk/.env (sibling of scripts/) so `npm run smoke` and a bare
 // `node scripts/smoke.mjs` both pick up config without needing --env-file.
@@ -106,74 +107,6 @@ const oberhahn = init({
   onError: (err) => console.error("  submit error:", err?.message ?? err),
 });
 
-async function runOpenAI() {
-  const { default: OpenAI } = await import("openai");
-  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
-  const openai = wrap(new OpenAI(), "openai");
-  console.log(`  provider : openai (${model})`);
-  const res = await openai.chat.completions.create({
-    model,
-    max_tokens: 100,
-    messages: [{ role: "user", content: "Give me a 200 word paragraph'." }],
-    obMetadata: smokeMetadata,
-  });
-  return { provider_message_id: res.id, usage: res.usage };
-}
-
-async function runAnthropic() {
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
-  const anthropic = wrap(new Anthropic(), "anthropic");
-  console.log(`  provider : anthropic (${model})`);
-  const res = await anthropic.messages.create({
-    model,
-    max_tokens: 100,
-    messages: [{ role: "user", content: "Give me a 200 word paragraph." }],
-    obMetadata: smokeMetadata,
-  });
-  return { provider_message_id: res.id, usage: res.usage };
-}
-
-async function runBedrock() {
-  const { BedrockRuntimeClient, ConverseCommand } = await import(
-    "@aws-sdk/client-bedrock-runtime"
-  );
-  const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
-  if (!region) die("Set AWS_REGION for the Bedrock smoke (plus AWS credentials).");
-  // Model access must be enabled in your account/region; may need a "us."/"eu."
-  // inference-profile prefix. Override with BEDROCK_MODEL_ID.
-  const modelId = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-haiku-20241022-v1:0";
-  const client = wrap(new BedrockRuntimeClient({ region }), "bedrock");
-  console.log(`  provider : bedrock (${modelId}, ${region})`);
-  const command = new ConverseCommand({
-    modelId,
-    messages: [{ role: "user", content: [{ text: "Give me a 200 word paragraph" }] }],
-    inferenceConfig: { maxTokens: 16 },
-  });
-  // Per-call attribution on the command instance (SDK strips it before send).
-  Object.assign(command, {
-    obMetadata: smokeMetadata,
-  });
-  const res = await client.send(command);
-  return { provider_message_id: undefined, usage: res.usage };
-}
-
-async function runGemini() {
-  const { GoogleGenAI } = await import("@google/genai");
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-  const gemini = wrap(
-    new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }),
-    "gemini",
-  );
-  console.log(`  provider : gemini (${model})`);
-  const res = await gemini.models.generateContent({
-    model,
-    contents: "Give me a 200 word paragraph.",
-    obMetadata: smokeMetadata,
-  });
-  return { provider_message_id: res.responseId, usage: res.usageMetadata };
-}
-
 async function readBack() {
   // Poll GET /events filtered by our custom tag. Ingestion is synchronous, but
   // give it a few tries in case of replication lag on the deployment.
@@ -202,34 +135,10 @@ async function readBack() {
 }
 
 async function main() {
-  const hasAws =
-    !!process.env.AWS_ACCESS_KEY_ID || !!process.env.AWS_PROFILE || !!process.env.AWS_REGION;
-  // Explicit override wins; otherwise detect from whichever credentials are set.
-  const hasGemini = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
-  const provider =
-    process.env.OBERHAHN_SMOKE_PROVIDER ??
-    (process.env.OPENAI_API_KEY
-      ? "openai"
-      : process.env.ANTHROPIC_API_KEY
-        ? "anthropic"
-        : hasAws
-          ? "bedrock"
-          : hasGemini
-            ? "gemini"
-            : null);
-  if (!provider) {
-    die(
-      "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or GEMINI_API_KEY " +
-        "(or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock|gemini).",
-    );
-  }
-
-  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock, gemini: runGemini };
-  const run = runners[provider];
-  if (!run) die(`Unknown OBERHAHN_SMOKE_PROVIDER "${provider}".`);
+  const provider = chooseProvider();
 
   console.log("\n→ making real provider call…");
-  const sent = await run();
+  const sent = await runSmoke(provider, false, smokeMetadata);
   console.log(`  provider returned id=${sent.provider_message_id}`);
   console.log(`  usage: ${JSON.stringify(sent.usage)}`);
 

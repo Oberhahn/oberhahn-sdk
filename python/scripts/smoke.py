@@ -32,6 +32,7 @@ from _smoke_common import (
     make_smoke_metadata,
     metadata_mismatches,
     read_back,
+    run_smoke,
 )
 
 load_env_file()
@@ -61,84 +62,11 @@ oberhahn_client = oberhahn.init(
 )
 
 
-def run_openai():
-    from openai import OpenAI
-
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-    client = oberhahn.wrap(OpenAI(), "openai")
-    print(f"  provider : openai ({model})")
-    res = client.chat.completions.create(
-        model=model,
-        max_tokens=100,
-        messages=[{"role": "user", "content": "Give me a 200 word paragraph."}],
-        ob_metadata=META,
-    )
-    return res.id, res.usage
-
-
-def run_anthropic():
-    from anthropic import Anthropic
-
-    model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
-    client = oberhahn.wrap(Anthropic(), "anthropic")
-    print(f"  provider : anthropic ({model})")
-    res = client.messages.create(
-        model=model,
-        max_tokens=100,
-        messages=[{"role": "user", "content": "Give me a 200 word paragraph."}],
-        ob_metadata=META,
-    )
-    return res.id, res.usage
-
-
-def run_bedrock():
-    import boto3
-
-    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
-    if not region:
-        die("Set AWS_REGION for the Bedrock smoke (plus AWS credentials).")
-    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
-    client = oberhahn.wrap(boto3.client("bedrock-runtime", region_name=region), "bedrock")
-    print(f"  provider : bedrock ({model_id}, {region})")
-    res = client.converse(
-        modelId=model_id,
-        messages=[{"role": "user", "content": [{"text": "Give me a 200 word paragraph"}]}],
-        inferenceConfig={"maxTokens": 16},
-        ob_metadata=META,
-    )
-    return None, res.get("usage")
-
-
-def run_gemini():
-    from google import genai
-
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-    client = oberhahn.wrap(genai.Client(), "gemini")
-    print(f"  provider : gemini ({model})")
-    res = client.models.generate_content(
-        model=model,
-        contents="Give me a 200 word paragraph.",
-        ob_metadata=META,
-    )
-    return getattr(res, "response_id", None), res.usage_metadata
-
-
-RUNNERS = {
-    "openai": run_openai,
-    "anthropic": run_anthropic,
-    "bedrock": run_bedrock,
-    "gemini": run_gemini,
-}
-
-
 def main() -> None:
     provider = choose_provider()
-    run = RUNNERS.get(provider)
-    if not run:
-        die(f'Unknown OBERHAHN_SMOKE_PROVIDER "{provider}".')
 
     print("\n→ making real provider call…")
-    message_id, usage = run()
+    message_id, usage = run_smoke(provider, streaming=False, meta=META)
     print(f"  provider returned id={message_id}")
     print(f"  usage: {usage}")
 
