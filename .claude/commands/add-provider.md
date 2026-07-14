@@ -11,9 +11,11 @@ tested, one-file-per-language adapter** — not stubs. Arguments: `$ARGUMENTS`
 
 ## Read the spec first
 
-`SPECS.md` (repo root) is the source of truth — the canonical event contract, the
-adapter contract, the token/cache rules, and the per-provider mapping table. Read
-it before writing anything; this playbook is how to *apply* it.
+`SPECS.md` (repo root) is the **adapter** contract — what to extract, the
+`MethodSpec` shape, token/cache rules, and the per-provider mapping table. The
+**event/ingest** contract (`POST /events`, `spend_details`, cost derivation)
+lives in the canonical `PinataCloud/oberhahn-loop/SPECS.md`. Read both before
+writing anything; this playbook is how to *apply* them.
 
 ## Non-negotiable design rules (read before writing code)
 
@@ -80,31 +82,12 @@ against both SDK objects and plain dicts.
   types (guard Python with `importorskip`), so a future SDK bump that renames a
   field fails CI.
 
-## Step 5b — Live-smoke gate + credential request (the credential boundary)
-
-You do NOT have (and must never ask for) the provider's API key. Everything
-above is credential-free and should make CI green on its own — that green, via
-the drift canaries against the real SDK types, is what proves the adapter is
-correct. The live smoke is the only credentialed step, and it's handled by a
-gated CI job + a request to a human. So:
-
-1. Add a `<slug>` job to `.github/workflows/live-smoke.yml`, mirroring an
-   existing provider: gate it on the provider's secret(s) (bash `-z` early-exit,
-   never an `if:` that could leak), and fan out over python + js, and over
-   non-stream + stream **only if this provider has a streaming method** (check
-   whether the adapter set `is_stream`/`extract_stream`). One secret per provider
-   covers both SDKs and both modes.
-2. On the PR, add the labels **`needs-credentials`** and **`live-smoke`**, and
-   post a single structured comment so a human can close the loop:
-   > New provider **<slug>** — adapter + drift canaries are green (correctness
-   > verified without credentials). To run the live smoke, add a repo/org secret
-   > **`<SLUG>_API_KEY`** (mint at <provider console URL>, minimal/read scope,
-   > ~$X per run). Once it's set, re-run the `live-smoke` workflow and it will
-   > confirm the end-to-end path. I never see the key — it's injected only into
-   > the gated CI job.
-
-   Never put a real key in the repo, a fixture, or a comment. The human adds it
-   as a secret; the gated job (not you) uses it.
+Credentials note: everything above is **credential-free** — the drift canaries
+against the real SDK types are what prove the adapter is correct, no API key
+needed. The live smoke is optional confidence, run **by hand** when a key is
+available (`npm run smoke` / `python scripts/smoke.py` with the provider's key +
+`OBERHAHN_API_KEY` set). Never put a real key in the repo, a fixture, or a PR
+comment; just note in the PR which provider key a maintainer can smoke with.
 
 ## Step 6 — Verify to green (do not stop until this passes)
 
