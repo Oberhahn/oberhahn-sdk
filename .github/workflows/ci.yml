@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ["18", "20", "22"]
+        node-version: ["20", "22"]
     defaults:
       run:
         working-directory: js
@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11", "3.13"]
+        python-version: ["3.10", "3.11", "3.13"]
     defaults:
       run:
         working-directory: python
@@ -113,3 +113,17 @@ jobs:
           pip install -e .
       - name: Test
         run: pytest
+
+  # Single stable check that succeeds only if every matrix leg above did. Make
+  # THIS the required status check in branch protection (matrix job names change
+  # with versions; this name never does — and it's what gates Dependabot auto-merge).
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [js, js-provider-latest, python, python-provider-latest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any CI job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "all CI legs passed"
