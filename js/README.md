@@ -83,47 +83,9 @@ merged (later wins). Known keys map to canonical event fields
 > before `send()`, preserving the command instance. Per-client
 > `wrap(client, "bedrock", { metadata })` and global `init` metadata work too.
 
-## Adding a provider
+## Extending it
 
-Scaffold it — `node scripts/new-adapter.mjs <slug>` writes the adapter + test
-stubs and registers it in `src/registry.ts`, leaving TODOs for the extraction
-logic. Then fill those in:
-
-Implement the `Adapter` contract (`src/adapters/types.ts`) — a `name` (the
-provider slug the caller passes to `wrap`) plus a list of `MethodSpec`s, each
-with a `path` to monkey-patch and an `extract()` (and `extractStream()` for
-streaming methods) — and register it under its slug in `src/registry.ts`. The
-core wrapper and event mapping are untouched; there is no detection to write.
-
-## Development
-
-```sh
-npm install
-npm run typecheck   # tsc on src
-npm test            # vitest
-npm run build       # emit dist/
-```
-
-## Live smoke tests
-
-Two scripts make a real (tiny, cheap) provider call against a **deployed**
-OBERHAHN endpoint and read the event back. Config comes from `sdk/.env`
-(auto-loaded by the scripts; `process.env` still wins over the file):
-
-```sh
-npm run smoke          # one non-streaming call (openai | anthropic | bedrock)
-npm run smoke:stream   # one streaming call (openai | anthropic)
-```
-
-Required env: `OBERHAHN_API_KEY`, `OBERHAHN_BASE_URL`, and one provider key
-(`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / AWS creds). Force a provider with
-`OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock`.
-
-- **`OBERHAHN_BASE_URL` must include the `/v0` suffix** (e.g.
-  `https://oberhahn.example.com/v0`). The SDK posts to `{baseUrl}/events`; without
-  `/v0` the ingest POST 404/403s.
-- **Read-back needs a read-capable key.** An ingest-only `oak_` key gets 403 on
-  `GET /events` — the script says so and treats it as non-fatal (verify via the
-  dashboard instead).
-- If a var is already exported in your shell it shadows `sdk/.env` — `unset` it
-  to fall back to the file.
+The SDK is designed so **adding a provider is a one-file adapter** — the core
+wrapper and event mapping never change. If you want to add a provider or hack on
+the SDK, see [CONTRIBUTING.md](./CONTRIBUTING.md) (scaffold, adapter contract,
+dev setup, and live smoke tests).

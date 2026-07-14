@@ -99,44 +99,9 @@ merged (later wins). Known keys map to canonical event fields
 > `client.converse_stream(...)`. Attach per-call attribution with the ordinary
 > `ob_metadata=...` keyword argument, just like the other providers.
 
-## Adding a provider
+## Extending it
 
-Scaffold it — `python scripts/new_adapter.py <slug>` writes the adapter + test
-stubs and registers it in `oberhahn._registry`, leaving TODOs for the extraction
-logic. Then fill those in:
-
-Implement the `Adapter` contract (`oberhahn._types`) — a `name` (the provider
-slug the caller passes to `wrap`) plus a list of `MethodSpec`s, each with a
-`path` to monkey-patch and an `extract()` (and `extract_stream()` for streaming
-methods) — and register it under its slug in `oberhahn._registry`. The core
-wrapper and event mapping are untouched; there is no detection to write.
-
-## Development
-
-```sh
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt   # pinned provider SDKs + test tooling
-pip install -e .
-pytest                                 # wiring suite + provider-SDK drift canaries
-```
-
-`requirements-dev.txt` pins the provider SDKs to exact versions so Dependabot can
-bump them (each bump reruns the drift canaries in CI); the published
-`[openai]` / `[anthropic]` / `[bedrock]` extras stay loose for consumers.
-
-## Live smoke tests
-
-Two scripts make a real (tiny, cheap) provider call against a **deployed**
-OBERHAHN endpoint and read the event back. Config comes from `python/.env`
-(auto-loaded; real environment variables still win):
-
-```sh
-python scripts/smoke.py          # one non-streaming call (openai | anthropic | bedrock)
-python scripts/smoke_stream.py   # one streaming call (openai | anthropic)
-```
-
-Required env: `OBERHAHN_API_KEY`, `OBERHAHN_BASE_URL` (**incl. the `/v0`
-suffix**), and one provider credential (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` /
-AWS creds). Force a provider with `OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock`.
-An ingest-only `oak_` key gets 403 on read-back — the script says so and treats
-it as non-fatal (verify via the dashboard instead).
+The SDK is designed so **adding a provider is a one-file adapter** — the core
+wrapper and event mapping never change. If you want to add a provider or hack on
+the SDK, see [CONTRIBUTING.md](./CONTRIBUTING.md) (scaffold, adapter contract,
+dev setup, and live smoke tests).
