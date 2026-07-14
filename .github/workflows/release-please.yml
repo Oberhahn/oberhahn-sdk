@@ -1,0 +1,23 @@
+name: release-please
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Maintains a per-package "release PR" from conventional-commit history: it keeps
+# the version + CHANGELOG up to date, and merging that PR tags the release
+# (js-vX.Y.Z / python-vX.Y.Z). Publishing to npm / PyPI is intentionally NOT here
+# — wire a separate workflow on `release: published` once the registry tokens
+# (or PyPI trusted publishing) are configured, so a publish never fires by accident.
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

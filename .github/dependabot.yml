@@ -21,10 +21,12 @@ updates:
           - "vitest"
           - "@types/*"
 
-  # oberhahn (python/) dependencies. Provider SDKs are pinned dev extras so
-  # Dependabot has concrete versions to bump; each bump triggers the `python` CI
-  # job (adapter contract tests + provider-SDK drift canaries). Provider SDKs are
-  # intentionally NOT grouped, so a drift failure is localized to one provider.
+  # oberhahn (python/) dependencies. Provider SDKs are pinned (==) in
+  # python/requirements-dev.txt so Dependabot has concrete versions to bump (the
+  # published extras in pyproject.toml stay loose `>=`, which Dependabot can't
+  # bump). Each bump triggers the `python` CI job (adapter contract tests +
+  # provider-SDK drift canaries). Provider SDKs are intentionally NOT grouped, so
+  # a drift failure is localized to one provider.
   - package-ecosystem: "pip"
     directory: "/python"
     schedule:

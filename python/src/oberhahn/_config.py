@@ -19,6 +19,10 @@ Transport = Callable[[str, Dict[str, str], bytes], int]
 
 OnError = Callable[[BaseException], None]
 
+#: Hosted OBERHAHN ingest endpoint (incl. the /v0 suffix). Overridable via the
+#: `base_url` arg or OBERHAHN_BASE_URL — set it for self-hosted / staging.
+DEFAULT_BASE_URL = "https://app.oberhahn.com/v0"
+
 
 def _default_transport(url: str, headers: Dict[str, str], body: bytes) -> int:
     # Send an explicit User-Agent. urllib's default ("Python-urllib/x.y") is
@@ -72,7 +76,7 @@ def resolve_config(
     resolved_enabled = False if enabled is False else not _env_disabled()
     return ResolvedConfig(
         api_key=api_key or _env("OBERHAHN_API_KEY"),
-        base_url=base_url or _env("OBERHAHN_BASE_URL"),
+        base_url=base_url or _env("OBERHAHN_BASE_URL") or DEFAULT_BASE_URL,
         metadata=metadata or {},
         throw_on_error=throw_on_error,
         enabled=resolved_enabled,

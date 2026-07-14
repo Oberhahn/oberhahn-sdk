@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": true,
+  "include-component-in-tag": true,
+  "packages": {
+    "js": {
+      "release-type": "node",
+      "component": "js",
+      "package-name": "@oberhahn/sdk"
+    },
+    "python": {
+      "release-type": "python",
+      "component": "python",
+      "package-name": "oberhahn",
+      "extra-files": ["src/oberhahn/_version.py"]
+    }
+  }
+}

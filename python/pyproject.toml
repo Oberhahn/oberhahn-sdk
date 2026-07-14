@@ -36,16 +36,12 @@ Issues = "https://github.com/PinataCloud/oberhahn-sdk/issues"
 
 [project.optional-dependencies]
 # Provider SDKs are optional peer dependencies — install only what you use.
+# Loose ranges on purpose: consumers shouldn't be pinned to an exact version.
+# Development/CI uses the pinned requirements-dev.txt instead (which is what
+# Dependabot bumps — loose ranges here would give it nothing to update).
 openai = ["openai>=1.0.0"]
 anthropic = ["anthropic>=0.30.0"]
 bedrock = ["boto3>=1.34.0"]
-# Everything, for local development / running the full test + contract suite.
-dev = [
-    "pytest>=8.0.0",
-    "openai>=1.0.0",
-    "anthropic>=0.30.0",
-    "boto3>=1.34.0",
-]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/oberhahn"]

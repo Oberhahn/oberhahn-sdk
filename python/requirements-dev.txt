@@ -1,0 +1,23 @@
+# Pinned dev / test / tooling dependencies for the Python SDK.
+#
+# WHY PINS (==) HERE, NOT IN pyproject.toml:
+# The published package keeps its provider extras as loose `>=` ranges (correct
+# for a library — consumers shouldn't be forced to an exact version). But loose
+# ranges give Dependabot nothing concrete to bump, so it opens no PRs. These
+# exact pins are what Dependabot bumps (see /.github/dependabot.yml, pip @/python).
+# Each provider-SDK bump reruns the `python` CI job, whose contract/drift canaries
+# (tests/test_contract.py) fail if a provider renames a field the adapters read —
+# the exact mirror of the JS pinned devDependencies + package-lock.json.
+#
+# Provider SDKs are intentionally listed individually (not grouped) so a drift
+# failure is localized to one provider's PR.
+
+# Provider SDKs — exercised by the adapter + contract tests.
+openai==2.45.0
+anthropic==0.116.0
+boto3==1.43.47
+
+# Test + build tooling (grouped as "sdk-tooling" in dependabot.yml).
+pytest==9.1.1
+build==1.5.1
+hatchling==1.31.0

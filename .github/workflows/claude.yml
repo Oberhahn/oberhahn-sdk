@@ -1,0 +1,37 @@
+name: claude
+# Interactive Claude Code: mention @claude in an issue or PR comment and it acts
+# in this repo (answer, implement, open a PR). Pairs with the /add-provider
+# command — e.g. open an issue "add Cohere support" and @claude runs the playbook.
+#
+# SETUP (one-time, by a repo admin):
+#   Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY`.
+#   To use a Claude subscription instead of an API key, swap the `with:` line for
+#   `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  claude:
+    # Only run when someone actually summons @claude — never on every comment.
+    if: >
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

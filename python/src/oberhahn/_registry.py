@@ -12,10 +12,13 @@ from typing import Dict, List, Optional
 from ._types import Adapter
 from .adapters import anthropic_adapter, bedrock_adapter, openai_adapter
 
+# scaffold:imports  (scripts/new_adapter.py inserts new adapter imports above this line)
+
 ADAPTERS: Dict[str, Adapter] = {
     openai_adapter.name: openai_adapter,
     anthropic_adapter.name: anthropic_adapter,
     bedrock_adapter.name: bedrock_adapter,
+    # scaffold:entries  (scripts/new_adapter.py inserts new adapter entries above this line)
 }
 
 

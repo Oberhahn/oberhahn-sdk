@@ -29,10 +29,7 @@ The core package has **no required dependencies** (standard library only).
 import oberhahn
 from openai import OpenAI
 
-oberhahn.init(
-    api_key="oak_...",                            # oak_… key → org + consumer scope
-    base_url="https://oberhahn.example.com/v0",   # API root incl. /v0
-)
+oberhahn.init(api_key="oak_...")   # oak_… key → org + consumer scope
 
 client = oberhahn.wrap(
     OpenAI(),
@@ -82,7 +79,7 @@ def handler(event, context):
 | Argument         | Env                     | Default | Purpose                                                       |
 | ---------------- | ----------------------- | ------- | ------------------------------------------------------------- |
 | `api_key`        | `OBERHAHN_API_KEY`      | —       | `oak_` key; sent as `Authorization: Bearer`.                  |
-| `base_url`       | `OBERHAHN_BASE_URL`     | —       | API root incl. `/v0`.                                         |
+| `base_url`       | `OBERHAHN_BASE_URL`     | `https://app.oberhahn.com/v0` | API root incl. `/v0`. Override for self-hosted/staging. |
 | `metadata`       | —                       | `{}`    | Global attribution merged into every event.                   |
 | `throw_on_error` | —                       | `False` | Attribution failures must not break the request path.         |
 | `enabled`        | `OBERHAHN_SDK_DISABLED` | `True`  | Kill switch (no-op passthrough when off).                     |
@@ -104,6 +101,10 @@ merged (later wins). Known keys map to canonical event fields
 
 ## Adding a provider
 
+Scaffold it — `python scripts/new_adapter.py <slug>` writes the adapter + test
+stubs and registers it in `oberhahn._registry`, leaving TODOs for the extraction
+logic. Then fill those in:
+
 Implement the `Adapter` contract (`oberhahn._types`) — a `name` (the provider
 slug the caller passes to `wrap`) plus a list of `MethodSpec`s, each with a
 `path` to monkey-patch and an `extract()` (and `extract_stream()` for streaming
@@ -114,9 +115,14 @@ wrapper and event mapping are untouched; there is no detection to write.
 
 ```sh
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pytest                # runs the wiring suite + provider-SDK drift canaries
+pip install -r requirements-dev.txt   # pinned provider SDKs + test tooling
+pip install -e .
+pytest                                 # wiring suite + provider-SDK drift canaries
 ```
+
+`requirements-dev.txt` pins the provider SDKs to exact versions so Dependabot can
+bump them (each bump reruns the drift canaries in CI); the published
+`[openai]` / `[anthropic]` / `[bedrock]` extras stay loose for consumers.
 
 ## Live smoke tests
 

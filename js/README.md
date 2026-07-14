@@ -18,10 +18,7 @@ Phase 1 providers: **OpenAI, Anthropic, AWS Bedrock**. Provider SDKs are
 import { init, wrap } from "@oberhahn/sdk";
 import OpenAI from "openai";
 
-init({
-  apiKey: process.env.OBERHAHN_API_KEY,        // oak_… key → org + consumer scope
-  baseUrl: "https://oberhahn.example.com/v0",  // API root incl. /v0
-});
+init({ apiKey: process.env.OBERHAHN_API_KEY }); // oak_… key → org + consumer scope
 
 const openai = wrap(new OpenAI(), "openai", {
   metadata: { environment: "production", feature: "support_agent" },
@@ -66,7 +63,7 @@ export async function handler(event) {
 | Field          | Env                   | Default | Purpose                                                        |
 | -------------- | --------------------- | ------- | -------------------------------------------------------------- |
 | `apiKey`       | `OBERHAHN_API_KEY`    | —       | `oak_` key; sent as `Authorization: Bearer`.                   |
-| `baseUrl`      | `OBERHAHN_BASE_URL`   | —       | API root incl. `/v0`.                                          |
+| `baseUrl`      | `OBERHAHN_BASE_URL`   | `https://app.oberhahn.com/v0` | API root incl. `/v0`. Override for self-hosted/staging. |
 | `metadata`     | —                     | `{}`    | Global attribution merged into every event.                   |
 | `throwOnError` | —                     | `false` | Attribution failures must not break the request path.          |
 | `enabled`      | `OBERHAHN_SDK_DISABLED` | `true`  | Kill switch (no-op passthrough when off).                      |
@@ -87,6 +84,10 @@ merged (later wins). Known keys map to canonical event fields
 > `wrap(client, "bedrock", { metadata })` and global `init` metadata work too.
 
 ## Adding a provider
+
+Scaffold it — `node scripts/new-adapter.mjs <slug>` writes the adapter + test
+stubs and registers it in `src/registry.ts`, leaving TODOs for the extraction
+logic. Then fill those in:
 
 Implement the `Adapter` contract (`src/adapters/types.ts`) — a `name` (the
 provider slug the caller passes to `wrap`) plus a list of `MethodSpec`s, each
