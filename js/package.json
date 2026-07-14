@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.1081.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1086.0",
     "@types/node": "^22.10.0",
     "openai": "^6.46.0",
     "typescript": "^5.6.0",
