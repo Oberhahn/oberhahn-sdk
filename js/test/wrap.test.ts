@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { init, wrap } from "../src/index.js";
+import { flush, init, wrap } from "../src/index.js";
 import { routeMetadata } from "../src/metadata.js";
 import { initCapturing } from "./helpers.js";
 
@@ -96,6 +96,15 @@ describe("client behavior", () => {
     await openai.chat.completions.create({ model: "gpt-4o" } as never);
     await client.awaitPending();
     expect(attempts).toBe(2);
+  });
+
+  it("flush() drains pending submissions (no client handle needed)", async () => {
+    const { calls } = initCapturing();
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+
+    await openai.chat.completions.create({ model: "gpt-4o" } as never);
+    await flush(); // module-level public drain
+    expect(calls).toHaveLength(1);
   });
 
   it("is a no-op passthrough when disabled", async () => {

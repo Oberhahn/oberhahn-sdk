@@ -44,9 +44,22 @@ await openai.chat.completions.create({
   carries none of that provider's methods.
 - **`obMetadata`** (or `ob_metadata`) on a request → per-call attribution;
   stripped from the args before the provider call is forwarded.
+- **`flush()`** — await every event submitted so far. Optional: submission is
+  *immediate* and fire-and-forget (nothing sits buffered), so a long-lived
+  server never needs it. Call it in short-lived / serverless contexts (e.g. at
+  the end of a Lambda handler) to drain before the runtime freezes the process.
 
-There is **no `flush`**: submission is *immediate* (serverless-safe — nothing
-sits buffered waiting for a drain).
+Submission is fire-and-forget and best-effort — the wrapped request never waits
+on it, and a delivery failure past `maxRetries` is dropped (surfaced via
+`onError`), never thrown into your call path.
+
+```ts
+export async function handler(event) {
+  const res = await openai.chat.completions.create({ model, messages });
+  await flush();   // drain before the platform freezes this invocation
+  return res;
+}
+```
 
 ### Config
 

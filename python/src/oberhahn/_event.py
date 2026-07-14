@@ -1,0 +1,56 @@
+"""The canonical payload POSTed to ``POST {base_url}/events``.
+
+Intentionally a loose input shape: the OBERHAHN server fills
+``organization_id``, ``consumer_id``, ``date``, and derives ``cost`` from the
+token counts. The SDK never prices anything.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from ._types import ProviderUsage
+
+DEFAULT_CONSUMER_TYPE = "customer"
+
+
+def build_event(
+    usage: ProviderUsage,
+    routed: Dict[str, Any],
+    adapter_name: str,
+) -> Dict[str, Any]:
+    cache_write = usage.cache_write_tokens
+    cache_read = usage.cache_read_tokens
+    has_split = cache_write is not None or cache_read is not None
+    # When the split is known the server prices it and ignores ``cached_tokens``;
+    # set the total to the sum so a total-only consumer still sees it.
+    cached_tokens = (cache_write or 0) + (cache_read or 0) if has_split else 0
+
+    spend_details: Dict[str, Any] = {
+        "model_provider": usage.model_provider,
+        "model": usage.model,
+        "input_tokens": usage.input_tokens,
+        "output_tokens": usage.output_tokens,
+        "cached_tokens": cached_tokens,
+    }
+    if cache_write is not None:
+        spend_details["cache_write_tokens"] = cache_write
+    if cache_read is not None:
+        spend_details["cache_read_tokens"] = cache_read
+
+    event: Dict[str, Any] = {
+        "source": f"sdk_{adapter_name}",
+        "consumer_type": routed.get("consumer_type") or DEFAULT_CONSUMER_TYPE,
+        "spend_details": spend_details,
+    }
+    if routed.get("consumer_id"):
+        event["consumer_id"] = routed["consumer_id"]
+    if routed.get("task_id"):
+        event["task_id"] = routed["task_id"]
+    if routed.get("provider_session_id"):
+        event["provider_session_id"] = routed["provider_session_id"]
+    if usage.provider_message_id:
+        event["provider_message_id"] = usage.provider_message_id
+    if routed.get("custom"):
+        event["custom"] = routed["custom"]
+    return event

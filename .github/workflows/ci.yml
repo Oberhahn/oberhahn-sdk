@@ -4,8 +4,7 @@ on:
     branches: [main]
   pull_request:
 
-# One job per language SDK, path-filtered so a change to js/ only runs the JS
-# job (add a `python` job with an identical shape + `paths: [python/**]` later).
+# One job per language SDK. Each installs and tests only its own directory.
 jobs:
   js:
     name: js (@oberhahn/sdk)
@@ -31,3 +30,28 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  python:
+    name: python (oberhahn)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: python/.python-version
+          cache: pip
+      # The [dev] extra pulls in the provider SDKs, so the contract/drift
+      # canaries (tests/test_contract.py) run — a Dependabot bump that changes
+      # a provider's response shape fails here.
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Test
+        run: pytest
+      - name: Build
+        run: |
+          pip install build
+          python -m build

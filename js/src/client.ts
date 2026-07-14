@@ -58,12 +58,20 @@ export class OberhahnClient {
   }
 
   /**
-   * Await all in-flight submissions. Not part of the public API surface (the
-   * SDK ships no `flush`); used by tests and available for graceful shutdown.
-   * @internal
+   * Await all in-flight submissions. Never rejects.
+   *
+   * Submission is otherwise fire-and-forget: a long-lived server never needs
+   * this. Call it in short-lived / serverless contexts (e.g. at the end of a
+   * Lambda handler) to drain before the runtime freezes or reaps the process,
+   * so the last events aren't lost.
    */
-  async awaitPending(): Promise<void> {
+  async flush(): Promise<void> {
     await Promise.allSettled([...this.inFlight]);
+  }
+
+  /** Internal alias kept for tests / graceful-shutdown call sites. @internal */
+  async awaitPending(): Promise<void> {
+    await this.flush();
   }
 
   private async post(event: OberhahnEvent, attempt: number): Promise<void> {

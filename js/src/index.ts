@@ -33,6 +33,16 @@ export function wrap<T extends object>(client: T, provider: string, opts: WrapOp
   return patchClient(client, adapter, ensureClient(), opts);
 }
 
+/**
+ * Await every event submitted so far. Submission is fire-and-forget, so this is
+ * a no-op a long-lived server never needs. Call it in short-lived / serverless
+ * contexts — e.g. at the end of a Lambda handler — to drain before the runtime
+ * freezes or reaps the process, so the last events aren't lost. Never rejects.
+ */
+export async function flush(): Promise<void> {
+  if (globalClient) await globalClient.flush();
+}
+
 export type { OberhahnConfig } from "./config.js";
 export type { WrapOptions } from "./wrap.js";
 export type { OberhahnEvent } from "./event.js";
