@@ -1,6 +1,7 @@
 import type { Adapter } from "./adapters/types.js";
 import { anthropicAdapter } from "./adapters/anthropic.js";
 import { bedrockAdapter } from "./adapters/bedrock.js";
+import { geminiAdapter } from "./adapters/gemini.js";
 import { openaiAdapter } from "./adapters/openai.js";
 // scaffold:imports  (scripts/new-adapter.mjs inserts new adapter imports above this line)
 
@@ -13,6 +14,7 @@ export const ADAPTERS: Record<string, Adapter> = {
   [openaiAdapter.name]: openaiAdapter,
   [anthropicAdapter.name]: anthropicAdapter,
   [bedrockAdapter.name]: bedrockAdapter,
+  [geminiAdapter.name]: geminiAdapter,
   // scaffold:entries  (scripts/new-adapter.mjs inserts new adapter entries above this line)
 };
 
@@ -26,4 +28,4 @@ export function knownProviders(): string[] {
   return Object.keys(ADAPTERS);
 }
 
-export { openaiAdapter, anthropicAdapter, bedrockAdapter };
+export { openaiAdapter, anthropicAdapter, bedrockAdapter, geminiAdapter };

@@ -9,7 +9,7 @@ the SDK captures token usage and attribution from each call and reports it to
 OBERHAHN in the background. It stays out of the request path: no config to thread
 through your call sites, no buffering, and failures never break your calls.
 
-Phase 1 providers: **OpenAI, Anthropic, AWS Bedrock**. Provider SDKs are
+Providers: **OpenAI, Anthropic, AWS Bedrock, Google Gemini**. Provider SDKs are
 *optional peer dependencies* — install only what you use.
 
 ## Usage
@@ -35,7 +35,7 @@ await openai.chat.completions.create({
 
 - **`init(config)`** — set global config (also read from env). Returns the client.
 - **`wrap(client, provider, opts?)`** — patch the named provider's
-  (`"openai"` | `"anthropic"` | `"bedrock"`) usage-bearing methods in place, and
+  (`"openai"` | `"anthropic"` | `"bedrock"` | `"gemini"`) usage-bearing methods in place, and
   return the same client (typed as itself). Idempotent — re-wrapping never
   double-emits. Throws on an unknown provider; warns (and no-ops) if the client
   carries none of that provider's methods.
@@ -81,6 +81,11 @@ merged (later wins). Known keys map to canonical event fields
 > (`Object.assign(cmd, { obMetadata: { … } })`). The SDK reads and removes it
 > before `send()`, preserving the command instance. Per-client
 > `wrap(client, "bedrock", { metadata })` and global `init` metadata work too.
+
+> **Gemini:** wrap a `@google/genai` client and call
+> `client.models.generateContent({ model, contents, obMetadata })` /
+> `client.models.generateContentStream({ … })`. Attach per-call attribution with
+> the ordinary `obMetadata` key on the request, like OpenAI/Anthropic.
 
 ## Extending it
 

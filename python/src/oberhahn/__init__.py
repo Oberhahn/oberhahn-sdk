@@ -84,7 +84,7 @@ def wrap(
     metadata: Optional[Dict[str, Any]] = None,
 ) -> Any:
     """Wrap a provider ``client`` for the named ``provider`` (``"openai"`` |
-    ``"anthropic"`` | ``"bedrock"``): look the adapter up in the registry,
+    ``"anthropic"`` | ``"bedrock"`` | ``"gemini"``): look the adapter up in the registry,
     monkey-patch the usage-bearing methods it declares, and return the same
     client (mutated in place). Idempotent — re-wrapping never double-emits.
     Raises on an unknown provider; warns (and no-ops) if the client carries none

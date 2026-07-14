@@ -106,9 +106,11 @@ def choose_provider() -> str:
         return "anthropic"
     if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_PROFILE") or os.environ.get("AWS_REGION"):
         return "bedrock"
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return "gemini"
     die(
-        "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or AWS creds "
-        "(or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock)."
+        "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or "
+        "GEMINI_API_KEY (or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock|gemini)."
     )
 
 

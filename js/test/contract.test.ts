@@ -18,10 +18,12 @@
 import type OpenAI from "openai";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { TokenUsage, ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
+import type { GenerateContentResponse, GenerateContentResponseUsageMetadata } from "@google/genai";
 import { describe, expect, it } from "vitest";
 import { openaiAdapter } from "../src/adapters/openai.js";
 import { anthropicAdapter } from "../src/adapters/anthropic.js";
 import { bedrockAdapter } from "../src/adapters/bedrock.js";
+import { geminiAdapter } from "../src/adapters/gemini.js";
 
 // ---------------------------------------------------------------------------
 // 1. Type canaries — compile-time only. Each reads the exact fields the
@@ -73,6 +75,18 @@ function _bedrockContract(out: ConverseCommandOutput, u: TokenUsage): void {
   const _out: number | undefined = u.outputTokens;
   const _cacheRead: number | undefined = u.cacheReadInputTokens;
   const _cacheWrite: number | undefined = u.cacheWriteInputTokens;
+}
+
+function _geminiContract(
+  r: GenerateContentResponse,
+  u: GenerateContentResponseUsageMetadata,
+): void {
+  const _id: string | undefined = r.responseId;
+  const _model: string | undefined = r.modelVersion;
+  const _usage: GenerateContentResponseUsageMetadata | undefined = r.usageMetadata;
+  const _in: number | undefined = u.promptTokenCount;
+  const _out: number | undefined = u.candidatesTokenCount;
+  const _cacheRead: number | undefined = u.cachedContentTokenCount;
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
@@ -176,6 +190,34 @@ describe("bedrock contract (real types)", () => {
       model_provider: "anthropic",
       input_tokens: 500,
       output_tokens: 90,
+    });
+  });
+});
+
+describe("gemini contract (real types)", () => {
+  it("extract() reads a real-typed GenerateContentResponse usage block", () => {
+    const usageMetadata = {
+      promptTokenCount: 1200,
+      candidatesTokenCount: 300,
+      cachedContentTokenCount: 200,
+      totalTokenCount: 1500,
+    } satisfies GenerateContentResponseUsageMetadata;
+    const result = {
+      responseId: "resp_1",
+      modelVersion: "gemini-2.0-flash",
+      usageMetadata,
+    } satisfies Pick<GenerateContentResponse, "responseId" | "modelVersion" | "usageMetadata">;
+
+    const out = geminiAdapter.methods[0].extract(result, [{ model: "gemini-2.0-flash" }]);
+    expect(out).toMatchObject({
+      model: "gemini-2.0-flash",
+      model_provider: "gemini",
+      // promptTokenCount (1200) already includes the 200 cached tokens, so the
+      // adapter reports the 1000 non-cached remainder as input_tokens.
+      input_tokens: 1000,
+      output_tokens: 300,
+      cache_read_tokens: 200,
+      provider_message_id: "resp_1",
     });
   });
 });

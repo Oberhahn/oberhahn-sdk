@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from .anthropic import anthropic_adapter
 from .bedrock import bedrock_adapter, map_bedrock_model
+from .gemini import gemini_adapter
 from .openai import openai_adapter
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "anthropic_adapter",
     "bedrock_adapter",
     "map_bedrock_model",
+    "gemini_adapter",
 ]

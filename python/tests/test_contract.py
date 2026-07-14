@@ -16,6 +16,7 @@ import pytest
 
 from oberhahn.adapters.anthropic import _from_message
 from oberhahn.adapters.bedrock import bedrock_adapter
+from oberhahn.adapters.gemini import _usage_from as _gemini_usage_from
 from oberhahn.adapters.openai import _usage_from
 
 
@@ -65,6 +66,31 @@ def test_anthropic_usage_fields_present():
     assert out.input_tokens == 1200
     assert out.cache_write_tokens == 40
     assert out.cache_read_tokens == 10
+
+
+def test_gemini_usage_fields_present():
+    genai_types = pytest.importorskip("google.genai.types")
+    usage_fields = _fields(genai_types.GenerateContentResponseUsageMetadata)
+    assert {
+        "prompt_token_count",
+        "candidates_token_count",
+        "cached_content_token_count",
+    } <= usage_fields
+    response_fields = _fields(genai_types.GenerateContentResponse)
+    assert {"usage_metadata", "response_id", "model_version"} <= response_fields
+    # And the adapter still reads a real-typed usage block.
+    usage = genai_types.GenerateContentResponseUsageMetadata(
+        prompt_token_count=1200,
+        candidates_token_count=300,
+        cached_content_token_count=200,
+        total_token_count=1500,
+    )
+    result = {"response_id": "resp_1", "model_version": "gemini-2.0-flash", "usage_metadata": usage}
+    out = _gemini_usage_from(result, {"model": "gemini-2.0-flash"})
+    assert out is not None
+    assert out.input_tokens == 1000  # 1200 − 200 cached
+    assert out.output_tokens == 300
+    assert out.cache_read_tokens == 200
 
 
 def test_bedrock_usage_shape_present():

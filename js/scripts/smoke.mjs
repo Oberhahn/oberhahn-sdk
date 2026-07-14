@@ -158,6 +158,22 @@ async function runBedrock() {
   return { provider_message_id: undefined, usage: res.usage };
 }
 
+async function runGemini() {
+  const { GoogleGenAI } = await import("@google/genai");
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const gemini = wrap(
+    new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }),
+    "gemini",
+  );
+  console.log(`  provider : gemini (${model})`);
+  const res = await gemini.models.generateContent({
+    model,
+    contents: "Give me a 200 word paragraph.",
+    obMetadata: smokeMetadata,
+  });
+  return { provider_message_id: res.responseId, usage: res.usageMetadata };
+}
+
 async function readBack() {
   // Poll GET /events filtered by our custom tag. Ingestion is synchronous, but
   // give it a few tries in case of replication lag on the deployment.
@@ -189,6 +205,7 @@ async function main() {
   const hasAws =
     !!process.env.AWS_ACCESS_KEY_ID || !!process.env.AWS_PROFILE || !!process.env.AWS_REGION;
   // Explicit override wins; otherwise detect from whichever credentials are set.
+  const hasGemini = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
   const provider =
     process.env.OBERHAHN_SMOKE_PROVIDER ??
     (process.env.OPENAI_API_KEY
@@ -197,15 +214,17 @@ async function main() {
         ? "anthropic"
         : hasAws
           ? "bedrock"
-          : null);
+          : hasGemini
+            ? "gemini"
+            : null);
   if (!provider) {
     die(
-      "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or AWS creds " +
-        "(or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock).",
+      "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or GEMINI_API_KEY " +
+        "(or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock|gemini).",
     );
   }
 
-  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock };
+  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock, gemini: runGemini };
   const run = runners[provider];
   if (!run) die(`Unknown OBERHAHN_SMOKE_PROVIDER "${provider}".`);
 

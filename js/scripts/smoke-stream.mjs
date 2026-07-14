@@ -113,6 +113,26 @@ async function runBedrock() {
   return { text };
 }
 
+async function runGemini() {
+  const { GoogleGenAI } = await import("@google/genai");
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const gemini = wrap(
+    new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }),
+    "gemini",
+  );
+  console.log(`  provider : gemini (${model}, streaming)`);
+  const stream = await gemini.models.generateContentStream({
+    model,
+    contents: "Give me a 200 word paragraph.",
+    obMetadata: { smoke_id: smokeId, session_id: smokeId, feature: "sdk_smoke_stream" },
+  });
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk.text ?? "";
+  }
+  return { text };
+}
+
 async function readBack() {
   // Filter on our custom tag via the supported `filter=key:value` form (a bare
   // ?smoke_id=… is silently ignored by GET /events and would false-pass).
@@ -139,6 +159,7 @@ async function readBack() {
 async function main() {
   const hasAws =
     !!process.env.AWS_ACCESS_KEY_ID || !!process.env.AWS_BEARER_TOKEN_BEDROCK || !!process.env.AWS_REGION;
+  const hasGemini = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
   const provider =
     process.env.OBERHAHN_SMOKE_PROVIDER ??
     (process.env.OPENAI_API_KEY
@@ -147,13 +168,15 @@ async function main() {
         ? "anthropic"
         : hasAws
           ? "bedrock"
-          : null);
+          : hasGemini
+            ? "gemini"
+            : null);
   if (!provider) {
-    die("No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or AWS creds.");
+    die("No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or GEMINI_API_KEY.");
   }
-  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock };
+  const runners = { openai: runOpenAI, anthropic: runAnthropic, bedrock: runBedrock, gemini: runGemini };
   const run = runners[provider];
-  if (!run) die(`Streaming smoke supports openai|anthropic|bedrock, not "${provider}".`);
+  if (!run) die(`Streaming smoke supports openai|anthropic|bedrock|gemini, not "${provider}".`);
 
   console.log("\n→ making real streaming provider call…");
   const { text } = await run();

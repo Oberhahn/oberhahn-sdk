@@ -18,7 +18,7 @@ function ensureClient(): OberhahnClient {
 
 /**
  * Wrap a provider client for the named `provider` (`"openai"` | `"anthropic"` |
- * `"bedrock"`): look the adapter up in the registry matrix, monkey-patch the
+ * `"bedrock"` | `"gemini"`): look the adapter up in the registry matrix, monkey-patch the
  * usage-bearing methods it declares, and return the same client (mutated in
  * place, typed as itself). Idempotent. Throws on an unknown provider slug; warns
  * (and no-ops) if the client carries none of that provider's methods.

@@ -113,7 +113,29 @@ def run_bedrock():
     print(f"  consumed {chunks} event(s)")
 
 
-RUNNERS = {"openai": run_openai, "anthropic": run_anthropic, "bedrock": run_bedrock}
+def run_gemini():
+    from google import genai
+
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    client = oberhahn.wrap(genai.Client(), "gemini")
+    print(f"  provider : gemini ({model})")
+    stream = client.models.generate_content_stream(
+        model=model,
+        contents="Give me a 200 word paragraph.",
+        ob_metadata=META,
+    )
+    chunks = 0
+    for _ in stream:
+        chunks += 1
+    print(f"  consumed {chunks} chunk(s)")
+
+
+RUNNERS = {
+    "openai": run_openai,
+    "anthropic": run_anthropic,
+    "bedrock": run_bedrock,
+    "gemini": run_gemini,
+}
 
 
 def _detect_provider():
@@ -123,13 +145,15 @@ def _detect_provider():
         return "anthropic"
     if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_BEARER_TOKEN_BEDROCK") or os.environ.get("AWS_REGION"):
         return "bedrock"
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return "gemini"
     return None
 
 
 def main() -> None:
     provider = os.environ.get("OBERHAHN_SMOKE_PROVIDER") or _detect_provider()
     if provider not in RUNNERS:
-        die("Streaming smoke supports openai | anthropic | bedrock. Set a provider credential.")
+        die("Streaming smoke supports openai | anthropic | bedrock | gemini. Set a provider credential.")
 
     print("\n→ making real streaming provider call…")
     RUNNERS[provider]()

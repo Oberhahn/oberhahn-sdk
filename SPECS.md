@@ -51,3 +51,4 @@ client, or metadata routing.
 | openai | `chat.completions.create`, `responses.create`, `embeddings.create` | `result.model` / request `model` | `prompt_tokens` includes cached → subtract; `prompt_tokens_details.cached_tokens` → read |
 | anthropic | `messages.create` | `msg.model` / request `model` | `input_tokens` cache-exclusive; `cache_creation_input_tokens`→write, `cache_read_input_tokens`→read |
 | bedrock | `converse`, `converse_stream` (py) / `send(ConverseCommand)` (js) | mapped from `modelId` | `cacheWriteInputTokens` / `cacheReadInputTokens` |
+| gemini | `models.generate_content(_stream)` (py) / `models.generateContent(Stream)` (js) | `usage_metadata`/`usageMetadata`; model from `model_version` else request; id from `response_id` | `prompt_token_count` includes cached → subtract; `cached_content_token_count` → read (no write count) |

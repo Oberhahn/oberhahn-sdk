@@ -109,7 +109,26 @@ def run_bedrock():
     return None, res.get("usage")
 
 
-RUNNERS = {"openai": run_openai, "anthropic": run_anthropic, "bedrock": run_bedrock}
+def run_gemini():
+    from google import genai
+
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    client = oberhahn.wrap(genai.Client(), "gemini")
+    print(f"  provider : gemini ({model})")
+    res = client.models.generate_content(
+        model=model,
+        contents="Give me a 200 word paragraph.",
+        ob_metadata=META,
+    )
+    return getattr(res, "response_id", None), res.usage_metadata
+
+
+RUNNERS = {
+    "openai": run_openai,
+    "anthropic": run_anthropic,
+    "bedrock": run_bedrock,
+    "gemini": run_gemini,
+}
 
 
 def main() -> None:
