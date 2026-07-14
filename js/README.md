@@ -63,7 +63,6 @@ export async function handler(event) {
 | Field          | Env                   | Default | Purpose                                                        |
 | -------------- | --------------------- | ------- | -------------------------------------------------------------- |
 | `apiKey`       | `OBERHAHN_API_KEY`    | —       | `oak_` key; sent as `Authorization: Bearer`.                   |
-| `baseUrl`      | `OBERHAHN_BASE_URL`   | `https://app.oberhahn.com/v0` | API root incl. `/v0`. Override for self-hosted/staging. |
 | `metadata`     | —                     | `{}`    | Global attribution merged into every event.                   |
 | `throwOnError` | —                     | `false` | Attribution failures must not break the request path.          |
 | `enabled`      | `OBERHAHN_SDK_DISABLED` | `true`  | Kill switch (no-op passthrough when off).                      |

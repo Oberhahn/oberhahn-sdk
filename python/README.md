@@ -79,7 +79,6 @@ def handler(event, context):
 | Argument         | Env                     | Default | Purpose                                                       |
 | ---------------- | ----------------------- | ------- | ------------------------------------------------------------- |
 | `api_key`        | `OBERHAHN_API_KEY`      | —       | `oak_` key; sent as `Authorization: Bearer`.                  |
-| `base_url`       | `OBERHAHN_BASE_URL`     | `https://app.oberhahn.com/v0` | API root incl. `/v0`. Override for self-hosted/staging. |
 | `metadata`       | —                       | `{}`    | Global attribution merged into every event.                   |
 | `throw_on_error` | —                       | `False` | Attribution failures must not break the request path.         |
 | `enabled`        | `OBERHAHN_SDK_DISABLED` | `True`  | Kill switch (no-op passthrough when off).                     |
