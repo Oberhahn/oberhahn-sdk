@@ -1,0 +1,95 @@
+name: live-smoke
+# Credential-gated live smoke tests. Each provider job runs ONLY if its secret(s)
+# exist — otherwise it skips green (never a false red). One credential per
+# provider covers both SDKs and both modes; each job fans out over
+# (python | js) × (non-stream | stream-if-supported) off that single key.
+#
+# NOT a required check (it needs credentials and posts real events) — it's a
+# confidence signal, not a merge gate. Results land in the run's job summary.
+#
+# Triggers: manual (workflow_dispatch), or when a PR is labeled `live-smoke`
+# (the /add-provider agent adds that label on a new-provider PR).
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  openai:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'live-smoke'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: OpenAI — python + js, non-stream + stream
+        env:
+          OBERHAHN_API_KEY: ${{ secrets.OBERHAHN_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OBERHAHN_SMOKE_PROVIDER: openai
+          OBERHAHN_ENVIRONMENT: ci
+        run: |
+          if [ -z "$OBERHAHN_API_KEY" ] || [ -z "$OPENAI_API_KEY" ]; then
+            echo "⏭️ **openai** — missing OBERHAHN_API_KEY or OPENAI_API_KEY; skipped" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          (cd python && pip install -q -r requirements-dev.txt && pip install -q -e . \
+            && python scripts/smoke.py && python scripts/smoke_stream.py)
+          (cd js && npm ci --silent && npm run smoke && npm run smoke:stream)
+          echo "✅ **openai** — python + js, non-stream + stream passed" >> "$GITHUB_STEP_SUMMARY"
+
+  anthropic:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'live-smoke'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Anthropic — python + js, non-stream + stream
+        env:
+          OBERHAHN_API_KEY: ${{ secrets.OBERHAHN_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OBERHAHN_SMOKE_PROVIDER: anthropic
+          OBERHAHN_ENVIRONMENT: ci
+        run: |
+          if [ -z "$OBERHAHN_API_KEY" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "⏭️ **anthropic** — missing OBERHAHN_API_KEY or ANTHROPIC_API_KEY; skipped" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          (cd python && pip install -q -r requirements-dev.txt && pip install -q -e . \
+            && python scripts/smoke.py && python scripts/smoke_stream.py)
+          (cd js && npm ci --silent && npm run smoke && npm run smoke:stream)
+          echo "✅ **anthropic** — python + js, non-stream + stream passed" >> "$GITHUB_STEP_SUMMARY"
+
+  bedrock:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'live-smoke'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Bedrock — python + js, non-stream (converse)
+        env:
+          OBERHAHN_API_KEY: ${{ secrets.OBERHAHN_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          OBERHAHN_SMOKE_PROVIDER: bedrock
+          OBERHAHN_ENVIRONMENT: ci
+        run: |
+          if [ -z "$OBERHAHN_API_KEY" ] || [ -z "$AWS_BEARER_TOKEN_BEDROCK" ] || [ -z "$AWS_REGION" ]; then
+            echo "⏭️ **bedrock** — missing OBERHAHN_API_KEY or AWS Bedrock creds; skipped" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          # Streaming (converse_stream) smoke not yet implemented for Bedrock — non-stream only.
+          (cd python && pip install -q -r requirements-dev.txt && pip install -q -e . && python scripts/smoke.py)
+          (cd js && npm ci --silent && npm run smoke)
+          echo "✅ **bedrock** — python + js, non-stream (converse) passed" >> "$GITHUB_STEP_SUMMARY"

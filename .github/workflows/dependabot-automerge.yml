@@ -26,7 +26,11 @@ jobs:
         if: >
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||
           steps.meta.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "$PR_URL"
+        # Fail-soft: if auto-merge isn't enabled on the repo yet, or a concurrent
+        # rebase moved the base branch, this errors — but that must NOT red an
+        # otherwise-green PR. Worst case the PR just waits for a manual merge.
+        continue-on-error: true
+        run: gh pr merge --auto --squash "$PR_URL" || echo "auto-merge not enabled (or base moved) — leaving PR for manual merge"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
