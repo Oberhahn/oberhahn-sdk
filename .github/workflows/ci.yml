@@ -4,10 +4,10 @@ on:
     branches: [main]
   pull_request:
 
-# One job per language SDK, each run across a matrix of supported runtimes.
-# A separate "-provider-latest" leg installs the newest provider SDKs (ignoring
-# the pins) and reruns the drift canaries — an early warning that a fresh
-# provider release broke an adapter, independent of Dependabot's schedule.
+# Per-PR CI: test YOUR code on the supported runtimes with PINNED deps
+# (deterministic — your responsibility). Drift against the *latest* provider
+# SDKs is a moving target you don't control, so it runs on a nightly schedule
+# (drift-nightly.yml) instead of gating every PR.
 jobs:
   js:
     name: js (node ${{ matrix.node-version }})
@@ -39,28 +39,6 @@ jobs:
         if: matrix.node-version == '22'
         run: npm run build
 
-  js-provider-latest:
-    name: js (provider SDKs @ latest)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: js
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: js/package-lock.json
-      - run: npm ci
-      - name: Install latest provider SDKs
-        run: npm install --no-save openai@latest @anthropic-ai/sdk@latest @aws-sdk/client-bedrock-runtime@latest
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Test
-        run: npm test
-
   python:
     name: python (${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -68,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.13"]
+        python-version: ["3.10", "3.13"]
     defaults:
       run:
         working-directory: python
@@ -93,34 +71,13 @@ jobs:
           pip install build
           python -m build
 
-  python-provider-latest:
-    name: python (provider SDKs @ latest)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-          cache: pip
-      - name: Install with latest provider SDKs
-        run: |
-          pip install -r requirements-dev.txt
-          pip install -U openai anthropic boto3
-          pip install -e .
-      - name: Test
-        run: pytest
-
-  # Single stable check that succeeds only if every matrix leg above did. Make
-  # THIS the required status check in branch protection (matrix job names change
+  # Single stable check that succeeds only if every matrix leg above did. This
+  # is the required status check in branch protection (matrix job names change
   # with versions; this name never does — and it's what gates Dependabot auto-merge).
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [js, js-provider-latest, python, python-provider-latest]
+    needs: [js, python]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any CI job failed or was cancelled

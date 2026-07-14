@@ -9,6 +9,12 @@ tested, one-file-per-language adapter** — not stubs. Arguments: `$ARGUMENTS`
 (the provider slug, e.g. `cohere`; the provider SDK package(s), e.g. `cohere` /
 `@cohere-ai/...`; and any docs URL or notes).
 
+## Read the spec first
+
+`SPECS.md` (repo root) is the source of truth — the canonical event contract, the
+adapter contract, the token/cache rules, and the per-provider mapping table. Read
+it before writing anything; this playbook is how to *apply* it.
+
 ## Non-negotiable design rules (read before writing code)
 
 - **The SDK is thin.** An adapter only *extracts* `{ model, model_provider,

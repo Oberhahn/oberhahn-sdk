@@ -78,7 +78,7 @@ jobs:
         with: { python-version: "3.13" }
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
-      - name: Bedrock — python + js, non-stream (converse)
+      - name: Bedrock — python + js, non-stream + stream
         env:
           OBERHAHN_API_KEY: ${{ secrets.OBERHAHN_API_KEY }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
@@ -89,7 +89,7 @@ jobs:
           if [ -z "$OBERHAHN_API_KEY" ] || [ -z "$AWS_BEARER_TOKEN_BEDROCK" ] || [ -z "$AWS_REGION" ]; then
             echo "⏭️ **bedrock** — missing OBERHAHN_API_KEY or AWS Bedrock creds; skipped" >> "$GITHUB_STEP_SUMMARY"; exit 0
           fi
-          # Streaming (converse_stream) smoke not yet implemented for Bedrock — non-stream only.
-          (cd python && pip install -q -r requirements-dev.txt && pip install -q -e . && python scripts/smoke.py)
-          (cd js && npm ci --silent && npm run smoke)
-          echo "✅ **bedrock** — python + js, non-stream (converse) passed" >> "$GITHUB_STEP_SUMMARY"
+          (cd python && pip install -q -r requirements-dev.txt && pip install -q -e . \
+            && python scripts/smoke.py && python scripts/smoke_stream.py)
+          (cd js && npm ci --silent && npm run smoke && npm run smoke:stream)
+          echo "✅ **bedrock** — python + js, non-stream (converse) + stream (converse_stream) passed" >> "$GITHUB_STEP_SUMMARY"

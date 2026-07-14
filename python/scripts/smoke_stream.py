@@ -92,15 +92,44 @@ def run_anthropic():
     print(f"  consumed {chunks} event(s)")
 
 
-RUNNERS = {"openai": run_openai, "anthropic": run_anthropic}
+def run_bedrock():
+    import boto3
+
+    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    if not region:
+        die("Set AWS_REGION for the Bedrock streaming smoke (plus AWS credentials).")
+    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
+    client = oberhahn.wrap(boto3.client("bedrock-runtime", region_name=region), "bedrock")
+    print(f"  provider : bedrock ({model_id}, {region})")
+    res = client.converse_stream(
+        modelId=model_id,
+        messages=[{"role": "user", "content": [{"text": "Give me a 200 word paragraph"}]}],
+        inferenceConfig={"maxTokens": 16},
+        ob_metadata=META,
+    )
+    chunks = 0
+    for _ in res["stream"]:
+        chunks += 1
+    print(f"  consumed {chunks} event(s)")
+
+
+RUNNERS = {"openai": run_openai, "anthropic": run_anthropic, "bedrock": run_bedrock}
+
+
+def _detect_provider():
+    if os.environ.get("OPENAI_API_KEY"):
+        return "openai"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_BEARER_TOKEN_BEDROCK") or os.environ.get("AWS_REGION"):
+        return "bedrock"
+    return None
 
 
 def main() -> None:
-    provider = os.environ.get("OBERHAHN_SMOKE_PROVIDER") or (
-        "openai" if os.environ.get("OPENAI_API_KEY") else "anthropic" if os.environ.get("ANTHROPIC_API_KEY") else None
-    )
+    provider = os.environ.get("OBERHAHN_SMOKE_PROVIDER") or _detect_provider()
     if provider not in RUNNERS:
-        die("Streaming smoke supports openai | anthropic. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.")
+        die("Streaming smoke supports openai | anthropic | bedrock. Set a provider credential.")
 
     print("\n→ making real streaming provider call…")
     RUNNERS[provider]()
