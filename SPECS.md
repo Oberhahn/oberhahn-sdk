@@ -18,7 +18,7 @@ fills `organization_id` / `date` / `cost` from the `oak_` key + token counts.
 ## The adapter (one file per provider)
 
 - **`ProviderUsage`** — `{ model, model_provider, input_tokens, output_tokens,
-  cache_write_tokens?, cache_read_tokens?, provider_message_id? }`.
+  cache_write_tokens?, cache_read_tokens?, provider_message_id?, cost? }`.
 - **`MethodSpec`** per usage-bearing method:
   - `path` — dotted method to monkey-patch (e.g. `chat.completions.create`).
   - `extract(result, args|kwargs) -> ProviderUsage | null` — non-stream usage.

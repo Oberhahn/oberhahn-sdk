@@ -23,6 +23,8 @@ export interface OberhahnEvent {
     cached_tokens: number;
     cache_write_tokens?: number;
     cache_read_tokens?: number;
+    /** Provider-reported cost, when present. */
+    cost?: number;
   };
   /** `"success"` for a completed call, `"error"` when the provider call threw. */
   status: string;
@@ -55,6 +57,7 @@ export function buildEvent(
   };
   if (cacheWrite !== undefined) spend_details.cache_write_tokens = cacheWrite;
   if (cacheRead !== undefined) spend_details.cache_read_tokens = cacheRead;
+  if (usage.cost !== undefined) spend_details.cost = usage.cost;
 
   const event: OberhahnEvent = {
     source: `sdk_${adapterName}`,

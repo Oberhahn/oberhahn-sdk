@@ -40,6 +40,8 @@ def build_event(
         spend_details["cache_write_tokens"] = cache_write
     if cache_read is not None:
         spend_details["cache_read_tokens"] = cache_read
+    if usage.cost is not None:
+        spend_details["cost"] = usage.cost
 
     event: Dict[str, Any] = {
         "source": f"sdk_{adapter_name}",

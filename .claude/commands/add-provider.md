@@ -21,7 +21,10 @@ writing anything; this playbook is how to *apply* them.
 
 - **The SDK is thin.** An adapter only *extracts* `{ model, model_provider,
   input/output/cache tokens, ids }`. It **never computes cost** — the OBERHAHN
-  server derives that. Do not add pricing, org/consumer/date logic.
+  server derives that when no provider-reported amount is available. If the
+  provider exposes a real reported cost, the adapter should set the `cost`
+  field in the usage payload so the event builder can forward it. Do not add
+  pricing, org/consumer/date logic.
 - **One file per language.** Touch only the new `adapters/<slug>` file, the
   registry (via the scaffold), the provider dep, the test, and the contract
   canary. **Do not modify** the core wrapper, event builder, client, or metadata
@@ -61,10 +64,10 @@ comment (see the OpenAI adapter's cache-subtraction note for the bar).
 Fill in `extract` (+ `is_stream`/`extract_stream` if it streams, else delete
 them), set the real `MethodSpec.path`(s), and add `model_info` if the provider
 names its model somewhere other than `kwargs["model"]` / `args[0].model` (needed
-for correct `status:"error"` events). Use `get()`/`coalesce()` so the code works
-against both SDK objects and plain dicts.
-
-## Step 4 — Wire up the dependency
+  for correct `status:"error"` events). If the provider exposes a real reported
+  cost in its response shape, populate the `cost` field on the usage object so
+  the event builder can forward it. Use `get()`/`coalesce()` so the code works
+  against both SDK objects and plain dicts.
 
 - **Python**: pin the package in `python/requirements-dev.txt` (exact `==`, so
   Dependabot bumps it) and add a loose `[<slug>] = ["<pkg>>=X"]` extra in

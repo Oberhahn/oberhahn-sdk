@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { buildEvent } from "../src/event.js";
 import { flush, init, wrap } from "../src/index.js";
 import { routeMetadata } from "../src/metadata.js";
 import { initCapturing } from "./helpers.js";
@@ -33,6 +34,16 @@ describe("metadata routing", () => {
 });
 
 describe("wrap()", () => {
+  it("forwards a provider-reported cost when present", () => {
+    const event = buildEvent(
+      { model: "gpt-4o", model_provider: "openai", input_tokens: 10, output_tokens: 4, cost: 0.42 },
+      routeMetadata({}, {}, {}),
+      "openai",
+    );
+
+    expect(event.spend_details).toMatchObject({ cost: 0.42 });
+  });
+
   it("is idempotent — double wrap does not double-emit", async () => {
     const { client, calls } = initCapturing();
     const base = fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } }));

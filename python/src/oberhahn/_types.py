@@ -8,7 +8,9 @@ drives which functions get monkey-patched.
 
 Design rule (see the spec): an adapter only *extracts* ``{model,
 model_provider, tokens, ids}``. It never prices anything — the OBERHAHN server
-derives cost from the token counts.
+derives cost from the token counts when no provider-reported cost is
+available. If the provider exposes a real reported cost, an adapter sets
+``cost`` to that value.
 """
 
 from __future__ import annotations
@@ -33,6 +35,8 @@ class ProviderUsage:
     cache_read_tokens: Optional[int] = None
     #: Provider's own message/response id, when present.
     provider_message_id: Optional[str] = None
+    #: Provider-reported cost, when available and the adapter can read it.
+    cost: Optional[float] = None
 
 
 #: ``(result, kwargs) -> ProviderUsage | None``. Pull usage from a resolved
