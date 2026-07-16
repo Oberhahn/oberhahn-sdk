@@ -84,6 +84,30 @@ export const SMOKE_PROVIDERS = {
     const res = await client.models.generateContent(args);
     return { provider_message_id: res.responseId, usage: res.usageMetadata };
   },
+
+  async openrouter(streaming, meta) {
+    // OpenRouter is OpenAI-wire-compatible: use the OpenAI client pointed at
+    // OpenRouter's base URL with an OPENROUTER_API_KEY. (On this branch the
+    // openai adapter reads the usage, so model_provider is "openai"; the native
+    // @openrouter/sdk adapter — which splits the routed vendor and tags
+    // custom.provider:"openrouter" — is a separate integration.)
+    const { default: OpenAI } = await import("openai");
+    if (!process.env.OPENROUTER_API_KEY) die("Set OPENROUTER_API_KEY for the OpenRouter smoke.");
+    const baseURL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
+    const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
+    const client = wrap(new OpenAI({ baseURL, apiKey: process.env.OPENROUTER_API_KEY }));
+    console.log(`  provider : openrouter (${model} @ ${baseURL}${streaming ? ", streaming" : ""})`);
+    const args = { model, max_tokens: 100, messages: [{ role: "user", content: PROMPT }], obMetadata: meta };
+    if (streaming) {
+      const s = await client.chat.completions.create({ ...args, stream: true, stream_options: { include_usage: true } });
+      let n = 0;
+      for await (const _ of s) n++;
+      console.log(`  consumed ${n} chunk(s)`);
+      return {};
+    }
+    const res = await client.chat.completions.create(args);
+    return { provider_message_id: res.id, usage: res.usage };
+  },
 };
 
 export function chooseProvider() {
@@ -94,9 +118,11 @@ export function chooseProvider() {
   if (process.env.AWS_ACCESS_KEY_ID || process.env.AWS_PROFILE || process.env.AWS_BEARER_TOKEN_BEDROCK || process.env.AWS_REGION)
     return "bedrock";
   if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) return "gemini";
+  if (process.env.OPENROUTER_API_KEY) return "openrouter";
   die(
-    "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, or GEMINI_API_KEY " +
-      "(or force with OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock|gemini).",
+    "No provider selected. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, AWS creds, GEMINI_API_KEY, " +
+      "or OPENROUTER_API_KEY (or force with " +
+      "OBERHAHN_SMOKE_PROVIDER=openai|anthropic|bedrock|gemini|openrouter).",
   );
 }
 

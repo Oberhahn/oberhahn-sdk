@@ -9,9 +9,10 @@
  *   npm run smoke:interactive   prompt for provider / key / model / streaming
  *
  * Env (loaded from js/.env automatically; process.env wins):
- *   Required: OBERHAHN_BASE_URL (incl. /v0), OBERHAHN_API_KEY, one provider key.
- *   Optional: OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL / BEDROCK_MODEL_ID,
- *             OBERHAHN_SMOKE_PROVIDER.
+ *   Required: OBERHAHN_BASE_URL (incl. /v0), OBERHAHN_API_KEY, one provider key
+ *             (OpenRouter: OPENROUTER_API_KEY [+ OPENROUTER_BASE_URL]).
+ *   Optional: OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL / BEDROCK_MODEL_ID /
+ *             OPENROUTER_MODEL, OBERHAHN_SMOKE_PROVIDER.
  *
  * Makes a real (tiny, cheap) API call and writes a real event, so run it
  * deliberately. Per-provider call logic lives in smoke-providers.mjs.
@@ -176,6 +177,15 @@ const CONFIG = {
     model: { name: "GEMINI_MODEL", default: "gemini-2.0-flash" },
     streams: true,
   },
+  openrouter: {
+    label: "OpenRouter (OpenAI-compatible)",
+    fields: [
+      { name: "OPENROUTER_API_KEY", prompt: "OpenRouter API key", secret: true },
+      { name: "OPENROUTER_BASE_URL", prompt: "OpenRouter base URL", default: "https://openrouter.ai/api/v1" },
+    ],
+    model: { name: "OPENROUTER_MODEL", default: "openai/gpt-4o-mini" },
+    streams: true,
+  },
 };
 
 async function runInteractive() {
@@ -200,15 +210,18 @@ async function runInteractive() {
   };
 
   // Prompt for one field — but skip entirely when it's already set (from .env
-  // or the environment); just use the existing value.
-  const collect = async ({ name, prompt, secret }) => {
+  // or the environment); just use the existing value. A field may carry a
+  // `default` (offered on enter); otherwise it's required.
+  const collect = async ({ name, prompt, secret, default: dflt }) => {
     if (process.env[name]) {
       console.log(`  using ${name} from the environment`);
       return process.env[name];
     }
+    const hint = dflt ? ` [enter for ${dflt}]` : "";
     for (;;) {
-      const answer = secret ? await askSecret(`${prompt}: `) : await ask(`${prompt}: `);
+      const answer = secret ? await askSecret(`${prompt}${hint}: `) : await ask(`${prompt}${hint}: `);
       if (answer) return answer;
+      if (dflt) return dflt;
       console.log("  (required)");
     }
   };
