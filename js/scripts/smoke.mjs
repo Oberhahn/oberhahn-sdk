@@ -163,11 +163,10 @@ const CONFIG = {
   },
   bedrock: {
     label: "AWS Bedrock",
-    fields: [
-      { name: "AWS_ACCESS_KEY_ID", prompt: "AWS access key id", secret: true },
-      { name: "AWS_SECRET_ACCESS_KEY", prompt: "AWS secret access key", secret: true },
-      { name: "AWS_REGION", prompt: "AWS region (e.g. us-east-1)", secret: false },
-    ],
+    // AWS credentials come from the standard AWS chain (env vars / shared
+    // profile / bearer token / role), not interactive prompts — we only need
+    // the region here.
+    fields: [{ name: "AWS_REGION", prompt: "AWS region (e.g. us-east-1)", secret: false }],
     model: { name: "BEDROCK_MODEL_ID", default: "anthropic.claude-3-5-haiku-20241022-v1:0" },
     streams: true,
   },
