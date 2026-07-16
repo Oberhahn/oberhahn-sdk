@@ -12,7 +12,12 @@ from typing import Any, Dict, List, Optional
 from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
 
+#: Registry slug + event source (``sdk_gemini``) — the SDK identity.
 PROVIDER = "gemini"
+#: The model *vendor* for pricing/rollups. The Google GenAI SDK's models are
+#: priced under ``google`` server-side (``gemini-* → google``), so
+#: ``model_provider`` is ``google``, not the ``gemini`` SDK slug.
+VENDOR = "google"
 
 
 def _usage_from(result: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
@@ -38,7 +43,7 @@ def _usage_from(result: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
     # fold in here (it maps to output_tokens 1:1, like every other adapter).
     usage = ProviderUsage(
         model=model,
-        model_provider=PROVIDER,
+        model_provider=VENDOR,
         input_tokens=max(0, input_total - (cache_read or 0)),
         output_tokens=output,
     )
@@ -67,7 +72,7 @@ def _usage_from_stream(chunks: List[Any], kwargs: Dict[str, Any]) -> Optional[Pr
 
 def _model_info(kwargs: Dict[str, Any]):
     """Provider + model from the request kwargs alone, for error events."""
-    return (PROVIDER, kwargs.get("model") or "unknown")
+    return (VENDOR, kwargs.get("model") or "unknown")
 
 
 gemini_adapter = Adapter(

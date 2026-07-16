@@ -70,6 +70,9 @@ export function buildEvent(
   if (routed.task_id) event.task_id = routed.task_id;
   if (routed.provider_session_id) event.provider_session_id = routed.provider_session_id;
   if (usage.provider_message_id) event.provider_message_id = usage.provider_message_id;
-  if (Object.keys(routed.custom).length > 0) event.custom = routed.custom;
+  // Adapter-derived custom tags (e.g. `provider: "openrouter"`) sit *under*
+  // user `obMetadata` custom, so an explicit caller value always wins.
+  const custom = { ...usage.custom, ...routed.custom };
+  if (Object.keys(custom).length > 0) event.custom = custom;
   return event;
 }

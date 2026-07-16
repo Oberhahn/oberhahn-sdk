@@ -41,6 +41,9 @@ describe("bedrock adapter", () => {
 
     expect(calls[0].body).toMatchObject({
       source: "sdk_bedrock",
+      // model_provider is the real model vendor (for pricing); Bedrock is the
+      // hosting layer, recorded as custom.provider.
+      custom: { provider: "bedrock" },
       spend_details: {
         model_provider: "anthropic",
         model: "claude-3-5-sonnet",

@@ -1,4 +1,11 @@
 import type { Adapter } from "./adapters/types.js";
+
+/**
+ * The registered provider slugs. This is the set `wrap()` accepts (and that
+ * `detectProvider` can return). Add a new literal here when you register an
+ * adapter, so callers get autocomplete + a compile error on typos.
+ */
+export type Provider = "openai" | "anthropic" | "bedrock" | "gemini";
 import { anthropicAdapter } from "./adapters/anthropic.js";
 import { bedrockAdapter } from "./adapters/bedrock.js";
 import { geminiAdapter } from "./adapters/gemini.js";

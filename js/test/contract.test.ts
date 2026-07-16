@@ -211,7 +211,7 @@ describe("gemini contract (real types)", () => {
     const out = geminiAdapter.methods[0].extract(result, [{ model: "gemini-2.0-flash" }]);
     expect(out).toMatchObject({
       model: "gemini-2.0-flash",
-      model_provider: "gemini",
+      model_provider: "google",
       // promptTokenCount (1200) already includes the 200 cached tokens, so the
       // adapter reports the 1000 non-cached remainder as input_tokens.
       input_tokens: 1000,

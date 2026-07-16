@@ -7,10 +7,14 @@ no ambiguity.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from ._types import Adapter
 from .adapters import anthropic_adapter, bedrock_adapter, gemini_adapter, openai_adapter
+
+# The registered provider slugs `wrap()` accepts (and `detect_provider` returns).
+# Add a member when you register an adapter so type checkers flag typos.
+Provider = Literal["openai", "anthropic", "bedrock", "gemini"]
 
 # scaffold:imports  (scripts/new_adapter.py inserts new adapter imports above this line)
 

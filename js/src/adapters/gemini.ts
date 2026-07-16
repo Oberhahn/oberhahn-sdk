@@ -1,6 +1,11 @@
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
+/** Registry slug + event source (`sdk_gemini`) — the SDK identity. */
 const PROVIDER = "gemini";
+/** The model *vendor* for pricing/rollups. The Google GenAI SDK's models are
+ * priced under `google` server-side (`gemini-* → google`), so `model_provider`
+ * is `google`, not the `gemini` SDK slug. */
+const VENDOR = "google";
 
 interface GeminiUsage {
   promptTokenCount?: number;
@@ -32,7 +37,7 @@ function usageFrom(
   // thinking tokens separately in thoughtsTokenCount, which we don't fold in.
   const usage: ProviderUsage = {
     model: result?.modelVersion ?? body?.model ?? "unknown",
-    model_provider: PROVIDER,
+    model_provider: VENDOR,
     input_tokens: Math.max(0, input - (cacheRead ?? 0)),
     output_tokens: output,
   };
@@ -61,7 +66,7 @@ function usageFromStream(chunks: unknown[], args: unknown[]): ProviderUsage | nu
 }
 
 const modelInfo = (args: unknown[]) => ({
-  model_provider: PROVIDER,
+  model_provider: VENDOR,
   model: (args[0] as { model?: string } | undefined)?.model ?? "unknown",
 });
 

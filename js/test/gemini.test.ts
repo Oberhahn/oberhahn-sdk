@@ -52,7 +52,7 @@ describe("gemini adapter", () => {
       source: "sdk_gemini",
       provider_message_id: "resp_1",
       spend_details: {
-        model_provider: "gemini",
+        model_provider: "google",
         model: "gemini-2.0-flash",
         // promptTokenCount (1200) already includes the 200 cached tokens, so the
         // adapter reports the 1000 non-cached remainder as input_tokens.
@@ -81,7 +81,7 @@ describe("gemini adapter", () => {
     await client.awaitPending();
 
     expect(calls[0].body).toMatchObject({
-      spend_details: { model_provider: "gemini", model: "gemini-2.0-flash", input_tokens: 40, output_tokens: 12 },
+      spend_details: { model_provider: "google", model: "gemini-2.0-flash", input_tokens: 40, output_tokens: 12 },
     });
     // No cached subset reported → the split field must be absent, not 0/null.
     expect(calls[0].body.spend_details).not.toHaveProperty("cache_read_tokens");
@@ -134,7 +134,7 @@ describe("gemini adapter", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({
       spend_details: {
-        model_provider: "gemini",
+        model_provider: "google",
         model: "gemini-2.0-flash",
         input_tokens: 6, // 10 total − 4 cached
         output_tokens: 5,
@@ -162,7 +162,7 @@ describe("gemini adapter", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({
       status: "error",
-      spend_details: { model_provider: "gemini", model: "gemini-2.0-flash", input_tokens: 0 },
+      spend_details: { model_provider: "google", model: "gemini-2.0-flash", input_tokens: 0 },
     });
   });
 });

@@ -89,7 +89,8 @@ def test_routes_ob_metadata_off_kwargs():
 
     assert "ob_metadata" not in seen  # stripped before the provider call
     assert calls[0].body["provider_session_id"] == "conv_1"
-    assert calls[0].body["custom"] == {"customer_id": "cust_9"}
+    # Bedrock's hosting tag merges with the caller's custom metadata.
+    assert calls[0].body["custom"] == {"provider": "bedrock", "customer_id": "cust_9"}
     assert calls[0].body["spend_details"]["model"] == "claude-3-haiku"
 
 

@@ -2,11 +2,18 @@ import type { Adapter, MethodSpec, ProviderUsage } from "./adapters/types.js";
 import { OberhahnClient } from "./client.js";
 import { buildEvent } from "./event.js";
 import { routeMetadata } from "./metadata.js";
+import type { Provider } from "./registry.js";
 
 /** Marker so a client (and each patched method) is only wrapped once. */
 const WRAPPED = Symbol.for("oberhahn.wrapped");
 
 export interface WrapOptions {
+  /**
+   * Provider slug. Omit to auto-detect from the client (see `detectProvider`);
+   * detection throws if the client is ambiguous (e.g. an OpenAI-compatible
+   * client pointed at an unknown host), so pass it explicitly in that case.
+   */
+  provider?: Provider;
   /** Per-client attribution, merged above `init` metadata, below `obMetadata`. */
   metadata?: Record<string, unknown>;
 }

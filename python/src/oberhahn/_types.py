@@ -16,7 +16,7 @@ available. If the provider exposes a real reported cost, an adapter sets
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -37,6 +37,13 @@ class ProviderUsage:
     provider_message_id: Optional[str] = None
     #: Provider-reported cost, when available and the adapter can read it.
     cost: Optional[float] = None
+    #: Adapter-derived custom tags, folded into the event ``custom`` map. Use for
+    #: facts about the *call* that aren't the model vendor — most importantly
+    #: ``{"provider": "openrouter"}`` / ``{"provider": "azure_openai"}`` for a
+    #: routing/hosting layer, so ``model_provider`` stays the real model vendor
+    #: (for pricing) while ``custom.provider`` records who routed/billed it. User
+    #: ``ob_metadata`` custom keys win over these on a collision.
+    custom: Optional[Dict[str, str]] = None
 
 
 #: ``(result, kwargs) -> ProviderUsage | None``. Pull usage from a resolved

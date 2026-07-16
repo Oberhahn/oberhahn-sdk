@@ -88,6 +88,7 @@ def test_gemini_usage_fields_present():
     result = {"response_id": "resp_1", "model_version": "gemini-2.0-flash", "usage_metadata": usage}
     out = _gemini_usage_from(result, {"model": "gemini-2.0-flash"})
     assert out is not None
+    assert out.model_provider == "google"  # SDK slug is "gemini"; vendor is "google"
     assert out.input_tokens == 1000  # 1200 − 200 cached
     assert out.output_tokens == 300
     assert out.cache_read_tokens == 200

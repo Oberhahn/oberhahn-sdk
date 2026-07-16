@@ -29,6 +29,15 @@ export interface ProviderUsage {
   provider_message_id?: string;
   /** Provider-reported cost, when available and the adapter can read it. */
   cost?: number;
+  /**
+   * Adapter-derived custom tags, folded into the event `custom` map. Use this
+   * for facts about the *call* that aren't the model vendor — most importantly
+   * `{ provider: "openrouter" }` / `{ provider: "azure_openai" }` for a
+   * routing/hosting layer, so `model_provider` stays the real model vendor (for
+   * pricing) while `custom.provider` records who routed/billed it. User
+   * `obMetadata` custom keys win over these on a collision.
+   */
+  custom?: Record<string, string>;
 }
 
 export interface MethodSpec {

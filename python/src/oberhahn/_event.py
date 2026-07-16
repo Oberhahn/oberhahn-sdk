@@ -59,6 +59,9 @@ def build_event(
         event["provider_session_id"] = routed["provider_session_id"]
     if usage.provider_message_id:
         event["provider_message_id"] = usage.provider_message_id
-    if routed.get("custom"):
-        event["custom"] = routed["custom"]
+    # Adapter-derived custom tags (e.g. ``provider: "openrouter"``) sit *under*
+    # user ``ob_metadata`` custom, so an explicit caller value always wins.
+    custom = {**(usage.custom or {}), **(routed.get("custom") or {})}
+    if custom:
+        event["custom"] = custom
     return event

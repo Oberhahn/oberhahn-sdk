@@ -15,6 +15,10 @@ from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
 
 PROVIDER = "bedrock"
+#: Bedrock is a hosting layer: ``model_provider`` is the real model vendor
+#: (anthropic/amazon/meta/…), and ``custom.provider`` records that AWS Bedrock
+#: routed/billed the call.
+HOSTING = "bedrock"
 
 _REGION_PREFIX = re.compile(r"^(us|eu|apac|us-gov)\.")
 _VERSION_SUFFIX = re.compile(r"-v\d+:\d+$")
@@ -32,7 +36,8 @@ def map_bedrock_model(model_id: str) -> Dict[str, str]:
     """
     without_region = _REGION_PREFIX.sub("", model_id)
     dot = without_region.find(".")
-    provider = without_region[:dot] if dot >= 0 else "bedrock"
+    # The vendor prefix (anthropic./amazon./meta./…) is the real model vendor.
+    provider = without_region[:dot] if dot >= 0 else HOSTING
     model = without_region[dot + 1:] if dot >= 0 else without_region
     model = _VERSION_SUFFIX.sub("", model)
     model = _COLON_SUFFIX.sub("", model)
@@ -49,6 +54,7 @@ def _to_usage(usage_block: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsag
         model_provider=mapped["provider"],
         input_tokens=coalesce(get(usage_block, "inputTokens")),
         output_tokens=coalesce(get(usage_block, "outputTokens")),
+        custom={"provider": HOSTING},
     )
     cache_write = get(usage_block, "cacheWriteInputTokens")
     if cache_write is not None:

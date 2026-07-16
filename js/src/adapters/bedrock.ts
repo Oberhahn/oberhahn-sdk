@@ -1,5 +1,10 @@
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
+/** Bedrock is a hosting layer: `model_provider` is the real model vendor
+ * (anthropic/amazon/meta/…), and `custom.provider` records that AWS Bedrock
+ * routed/billed the call. */
+const HOSTING = "bedrock";
+
 interface BedrockUsage {
   inputTokens?: number;
   outputTokens?: number;
@@ -18,7 +23,8 @@ interface BedrockUsage {
 export function mapBedrockModel(modelId: string): { provider: string; model: string } {
   const withoutRegion = modelId.replace(/^(us|eu|apac|us-gov)\./, "");
   const dot = withoutRegion.indexOf(".");
-  const provider = dot >= 0 ? withoutRegion.slice(0, dot) : "bedrock";
+  // The vendor prefix (anthropic./amazon./meta./…) is the real model vendor.
+  const provider = dot >= 0 ? withoutRegion.slice(0, dot) : HOSTING;
   let model = dot >= 0 ? withoutRegion.slice(dot + 1) : withoutRegion;
   model = model.replace(/-v\d+:\d+$/, "").replace(/:\d+$/, "").replace(/-\d{8}$/, "");
   return { provider, model };
@@ -40,6 +46,7 @@ function toUsage(u: BedrockUsage | undefined, args: unknown[]): ProviderUsage | 
     model_provider: provider,
     input_tokens: u.inputTokens ?? 0,
     output_tokens: u.outputTokens ?? 0,
+    custom: { provider: HOSTING },
   };
   if (u.cacheWriteInputTokens !== undefined) usage.cache_write_tokens = u.cacheWriteInputTokens;
   if (u.cacheReadInputTokens !== undefined) usage.cache_read_tokens = u.cacheReadInputTokens;

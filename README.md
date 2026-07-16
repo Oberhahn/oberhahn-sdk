@@ -13,9 +13,11 @@ in its own directory with its own build, tests, and packaging.
 | TypeScript / JS | `@oberhahn/sdk` | [`js/`](./js)              | ✅      |
 | Python          | `oberhahn`      | [`python/`](./python)      | ✅      |
 
-Each SDK shares the same shape: `init()` once, then `wrap(client, "<provider>")`
-to instrument your provider clients in place. See the per-language
-README for install and usage — start with [`js/README.md`](./js/README.md).
+Each SDK shares the same shape: `init()` once, then `wrap(client)` to instrument
+your provider clients in place — the provider is auto-detected, or pass it
+explicitly (`wrap(client, { provider })` / `wrap(client, "openai")`). See the
+per-language README for install and usage — start with
+[`js/README.md`](./js/README.md).
 
 ## Repository layout
 
