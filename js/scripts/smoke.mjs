@@ -200,14 +200,16 @@ async function runInteractive() {
     });
   };
 
-  // Prompt for one field, offering the existing env value as a default.
+  // Prompt for one field — but skip entirely when it's already set (from .env
+  // or the environment); just use the existing value.
   const collect = async ({ name, prompt, secret }) => {
-    const existing = process.env[name];
-    const hint = existing ? (secret ? " [enter to keep existing]" : ` [enter to keep ${existing}]`) : "";
+    if (process.env[name]) {
+      console.log(`  using ${name} from the environment`);
+      return process.env[name];
+    }
     for (;;) {
-      const answer = secret ? await askSecret(`${prompt}${hint}: `) : await ask(`${prompt}${hint}: `);
+      const answer = secret ? await askSecret(`${prompt}: `) : await ask(`${prompt}: `);
       if (answer) return answer;
-      if (existing) return existing;
       console.log("  (required)");
     }
   };
