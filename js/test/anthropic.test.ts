@@ -24,7 +24,7 @@ function fakeAnthropic(create?: (body: unknown) => unknown) {
 describe("anthropic adapter", () => {
   it("carries the cache write/read split and totals cached_tokens", async () => {
     const { client, calls } = initCapturing();
-    const anthropic = wrap(fakeAnthropic(), "anthropic");
+    const anthropic = wrap(fakeAnthropic());
 
     await anthropic.messages.create({ model: "claude-3-5-sonnet", messages: [] });
     await client.awaitPending();
@@ -63,7 +63,7 @@ describe("anthropic adapter", () => {
           })(),
       },
     };
-    const client2 = wrap(anthropic, "anthropic");
+    const client2 = wrap(anthropic);
 
     const stream = await client2.messages.create({ model: "claude-3-5-sonnet", stream: true } as never);
     for await (const _ of stream as AsyncIterable<unknown>) void _;

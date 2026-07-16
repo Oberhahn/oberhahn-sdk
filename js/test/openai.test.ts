@@ -51,7 +51,7 @@ function fakeOpenAI(handlers: {
 describe("openai adapter", () => {
   it("extracts usage from chat.completions.create and posts an event", async () => {
     const { client, calls } = initCapturing();
-    const openai = wrap(fakeOpenAI(), "openai");
+    const openai = wrap(fakeOpenAI());
 
     const res = await openai.chat.completions.create({ model: "gpt-4o", messages: [] });
     await client.awaitPending();
@@ -77,7 +77,7 @@ describe("openai adapter", () => {
 
   it("extracts usage from responses.create (input_tokens + input_tokens_details)", async () => {
     const { client, calls } = initCapturing();
-    const openai = wrap(fakeOpenAI(), "openai");
+    const openai = wrap(fakeOpenAI());
 
     const res = await openai.responses.create({ model: "gpt-4o", input: "hi" } as never);
     await client.awaitPending();
@@ -102,7 +102,7 @@ describe("openai adapter", () => {
 
   it("extracts usage from embeddings.create (no cache, no stream)", async () => {
     const { client, calls } = initCapturing();
-    const openai = wrap(fakeOpenAI(), "openai");
+    const openai = wrap(fakeOpenAI());
 
     const res = await openai.embeddings.create({
       model: "text-embedding-3-small",
@@ -134,9 +134,7 @@ describe("openai adapter", () => {
           seenBody = body as Record<string, unknown>;
           return { id: "c2", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 2 } };
         },
-      }),
-      "openai",
-      { metadata: { environment: "production", feature: "support_agent" } },
+      }),      { metadata: { environment: "production", feature: "support_agent" } },
     );
 
     await openai.chat.completions.create({
@@ -167,7 +165,7 @@ describe("openai adapter", () => {
       },
       embeddings: { create: async () => ({}) },
     };
-    const openai = wrap(streaming, "openai");
+    const openai = wrap(streaming);
 
     const stream = await openai.chat.completions.create({ model: "gpt-4o", stream: true } as never);
     const seen: unknown[] = [];

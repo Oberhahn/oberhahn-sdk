@@ -16,7 +16,7 @@ export const SMOKE_PROVIDERS = {
   async openai(streaming, meta) {
     const { default: OpenAI } = await import("openai");
     const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
-    const client = wrap(new OpenAI(), "openai");
+    const client = wrap(new OpenAI());
     console.log(`  provider : openai (${model}${streaming ? ", streaming" : ""})`);
     const args = { model, max_tokens: 100, messages: [{ role: "user", content: PROMPT }], obMetadata: meta };
     if (streaming) {
@@ -33,7 +33,7 @@ export const SMOKE_PROVIDERS = {
   async anthropic(streaming, meta) {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
-    const client = wrap(new Anthropic(), "anthropic");
+    const client = wrap(new Anthropic());
     console.log(`  provider : anthropic (${model}${streaming ? ", streaming" : ""})`);
     const args = { model, max_tokens: 100, messages: [{ role: "user", content: PROMPT }], obMetadata: meta };
     if (streaming) {
@@ -52,7 +52,7 @@ export const SMOKE_PROVIDERS = {
     const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
     if (!region) die("Set AWS_REGION for the Bedrock smoke (plus AWS credentials).");
     const modelId = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-haiku-20241022-v1:0";
-    const client = wrap(new BedrockRuntimeClient({ region }), "bedrock");
+    const client = wrap(new BedrockRuntimeClient({ region }));
     console.log(`  provider : bedrock (${modelId}, ${region}${streaming ? ", streaming" : ""})`);
     const input = { modelId, messages: [{ role: "user", content: [{ text: PROMPT }] }], inferenceConfig: { maxTokens: 16 } };
     const command = streaming ? new ConverseStreamCommand(input) : new ConverseCommand(input);
@@ -71,7 +71,7 @@ export const SMOKE_PROVIDERS = {
   async gemini(streaming, meta) {
     const { GoogleGenAI } = await import("@google/genai");
     const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-    const client = wrap(new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }), "gemini");
+    const client = wrap(new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY }));
     console.log(`  provider : gemini (${model}${streaming ? ", streaming" : ""})`);
     const args = { model, contents: PROMPT, obMetadata: meta };
     if (streaming) {

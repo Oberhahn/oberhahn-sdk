@@ -32,9 +32,7 @@ describe("bedrock adapter", () => {
   it("extracts usage from a ConverseCommand and maps the model", async () => {
     const { client, calls } = initCapturing();
     const bedrock = wrap(
-      fakeBedrock(() => ({ usage: { inputTokens: 500, outputTokens: 90 } })),
-      "bedrock",
-    );
+      fakeBedrock(() => ({ usage: { inputTokens: 500, outputTokens: 90 } })),    );
 
     await bedrock.send(new ConverseCommand({ modelId: "us.anthropic.claude-3-5-sonnet-20240620-v1:0" }));
     await client.awaitPending();
@@ -55,7 +53,7 @@ describe("bedrock adapter", () => {
 
   it("ignores non-Converse commands (they pass through, no event)", async () => {
     const { client, calls } = initCapturing();
-    const bedrock = wrap(fakeBedrock(() => ({ modelSummaries: [] })), "bedrock");
+    const bedrock = wrap(fakeBedrock(() => ({ modelSummaries: [] })));
 
     const res = await bedrock.send(new ListFoundationModelsCommand());
     await client.awaitPending();
@@ -67,9 +65,7 @@ describe("bedrock adapter", () => {
   it("reads obMetadata off a Command instance without breaking the command", async () => {
     const { client, calls } = initCapturing();
     const bedrock = wrap(
-      fakeBedrock(() => ({ usage: { inputTokens: 3, outputTokens: 1 } })),
-      "bedrock",
-    );
+      fakeBedrock(() => ({ usage: { inputTokens: 3, outputTokens: 1 } })),    );
     const cmd = new ConverseCommand({ modelId: "anthropic.claude-3-haiku-20240307-v1:0" });
     // Attach per-call attribution to the command instance (documented pattern).
     Object.assign(cmd, { obMetadata: { customer_id: "cust_9", session_id: "conv_1" } });
@@ -96,9 +92,7 @@ describe("bedrock adapter", () => {
           yield { contentBlockDelta: { delta: { text: "hi" } } };
           yield { metadata: { usage: { inputTokens: 12, outputTokens: 4 } } };
         })(),
-      })),
-      "bedrock",
-    );
+      })),    );
 
     const res = (await bedrock.send(
       new ConverseStreamCommand({ modelId: "anthropic.claude-3-haiku-20240307-v1:0" }),

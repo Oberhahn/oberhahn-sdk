@@ -41,7 +41,7 @@ function fakeGemini(handlers: {
 describe("gemini adapter", () => {
   it("extracts usage from models.generateContent and posts an event", async () => {
     const { client, calls } = initCapturing();
-    const gemini = wrap(fakeGemini(), "gemini");
+    const gemini = wrap(fakeGemini());
 
     const res = await gemini.models.generateContent({ model: "gemini-2.0-flash", contents: "hi" } as never);
     await client.awaitPending();
@@ -73,9 +73,7 @@ describe("gemini adapter", () => {
           modelVersion: "gemini-2.0-flash",
           usageMetadata: { promptTokenCount: 40, candidatesTokenCount: 12 },
         }),
-      }),
-      "gemini",
-    );
+      }),    );
 
     await gemini.models.generateContent({ model: "gemini-2.0-flash", contents: "hi" } as never);
     await client.awaitPending();
@@ -100,9 +98,7 @@ describe("gemini adapter", () => {
             usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2 },
           };
         },
-      }),
-      "gemini",
-    );
+      }),    );
 
     await gemini.models.generateContent({
       model: "gemini-2.0-flash",
@@ -120,7 +116,7 @@ describe("gemini adapter", () => {
 
   it("captures usage from a streamed generateContentStream (final chunk)", async () => {
     const { client, calls } = initCapturing();
-    const gemini = wrap(fakeGemini(), "gemini");
+    const gemini = wrap(fakeGemini());
 
     const stream = (await gemini.models.generateContentStream({
       model: "gemini-2.0-flash",
@@ -150,9 +146,7 @@ describe("gemini adapter", () => {
         generate: () => {
           throw new Error("gemini down");
         },
-      }),
-      "gemini",
-    );
+      }),    );
 
     await expect(
       gemini.models.generateContent({ model: "gemini-2.0-flash", contents: "hi" } as never),
