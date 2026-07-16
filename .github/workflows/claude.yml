@@ -21,7 +21,6 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  id-token: write
   actions: read
 
 jobs:
@@ -43,3 +42,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Tightly scoped: web tools (read-only) so @claude can verify live
+          # provider docs, plus ONLY the exact build/test/PR commands CI already
+          # runs. No `gh api`/`gh secret`, no `npm publish`/`npm install <pkg>`,
+          # no `npx` — so a prompt-injected comment can't reach a dangerous verb.
+          claude_args: |
+            --allowedTools "WebSearch,WebFetch,Bash(cd:*),Bash(npm ci),Bash(npm test:*),Bash(npm run typecheck:*),Bash(npm run build:*),Bash(pytest:*),Bash(pip install -r requirements-dev.txt),Bash(pip install -e .),Bash(pip install build),Bash(python -m build:*),Bash(gh pr create:*),Bash(gh pr view:*)"
