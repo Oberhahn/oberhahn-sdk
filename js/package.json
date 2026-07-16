@@ -19,8 +19,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "smoke": "npm run build && node scripts/smoke.mjs",
-    "smoke:stream": "npm run build && node scripts/smoke-stream.mjs",
-    "smoke:interactive": "npm run build && node scripts/smoke-interactive.mjs"
+    "smoke:stream": "npm run build && node scripts/smoke.mjs --stream",
+    "smoke:interactive": "npm run build && node scripts/smoke.mjs --interactive"
   },
   "keywords": [
     "oberhahn",
