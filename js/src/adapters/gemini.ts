@@ -1,7 +1,7 @@
 import { stripModelDate } from "./normalize.js";
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
-/** Registry slug + event source (`sdk_gemini`) — the SDK identity. */
+/** Registry slug (the `wrap()` name) — the SDK identity. */
 const PROVIDER = "gemini";
 /** The model *vendor* for pricing/rollups. The Google GenAI SDK's models are
  * priced under `google` server-side (`gemini-* → google`), so `model_provider`

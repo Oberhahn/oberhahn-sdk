@@ -49,7 +49,7 @@ def test_extracts_message_usage_and_posts_event():
 
     assert res["id"] == "msg_1"
     assert len(calls) == 1
-    assert calls[0].body["source"] == "sdk_anthropic"
+    assert calls[0].body["source"] == "sdk_oberhahn"
     assert calls[0].body["provider_message_id"] == "msg_1"
     assert calls[0].body["spend_details"] == {
         "model_provider": "anthropic",

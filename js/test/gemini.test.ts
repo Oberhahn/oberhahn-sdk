@@ -69,7 +69,7 @@ describe("gemini adapter", () => {
     expect((res as { responseId: string }).responseId).toBe("resp_1"); // caller still gets the result
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({
-      source: "sdk_gemini",
+      source: "sdk_oberhahn",
       provider_message_id: "resp_1",
       spend_details: {
         model_provider: "google",

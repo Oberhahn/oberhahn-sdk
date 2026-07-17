@@ -64,9 +64,10 @@ def test_later_sources_win():
 
 def test_build_event_forwards_provider_reported_cost_when_present():
     usage = ProviderUsage(model="gpt-4o", model_provider="openai", input_tokens=10, output_tokens=4, cost=0.42)
-    event = build_event(usage, {"consumer_type": "customer"}, "openai")
+    event = build_event(usage, {"consumer_type": "customer"})
 
     assert event["spend_details"]["cost"] == 0.42
+    assert event["source"] == "sdk_oberhahn"
 
 
 def test_idempotent_double_wrap_does_not_double_emit():

@@ -43,9 +43,12 @@ Two different questions; keep them in two different fields.
   `ProviderUsage.custom = { provider: "<service>" }`. Omit it for direct calls
   (openai/anthropic/gemini) where routing == vendor.
 
-An adapter's registry `name` (the `wrap()` slug + `sdk_<name>` event source) is
-the **SDK identity** and is independent of both — e.g. the Gemini adapter is
-named `gemini` but emits `model_provider: "google"`.
+An adapter's registry `name` (the `wrap()` slug) is the **SDK identity** and is
+independent of both — e.g. the Gemini adapter is named `gemini` but emits
+`model_provider: "google"`. The event `source` is **not** per-provider: every
+SDK event ships a single constant `source: "sdk_oberhahn"`, so "Integrated
+Sources" shows one row for the SDK and per-vendor breakdowns come from the
+groupable `model_provider` dimension.
 
 For a gateway that returns a `vendor/model` id (e.g. OpenRouter's
 `anthropic/claude-3.5-sonnet`), split it in the adapter: `model_provider` = the

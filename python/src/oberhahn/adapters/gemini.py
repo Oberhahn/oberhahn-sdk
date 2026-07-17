@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
 
-#: Registry slug + event source (``sdk_gemini``) — the SDK identity.
+#: Registry slug (the ``wrap()`` name) — the SDK identity.
 PROVIDER = "gemini"
 #: The model *vendor* for pricing/rollups. The Google GenAI SDK's models are
 #: priced under ``google`` server-side (``gemini-* → google``), so

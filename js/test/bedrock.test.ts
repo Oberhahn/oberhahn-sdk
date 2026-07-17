@@ -82,7 +82,7 @@ describe("bedrock adapter", () => {
     await client.awaitPending();
 
     expect(calls[0].body).toMatchObject({
-      source: "sdk_bedrock",
+      source: "sdk_oberhahn",
       // model_provider is the real model vendor (for pricing); Bedrock is the
       // hosting layer, recorded as custom.provider.
       custom: { provider: "bedrock" },

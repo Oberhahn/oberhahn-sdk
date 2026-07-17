@@ -48,7 +48,7 @@ describe("anthropic adapter", () => {
     await client.awaitPending();
 
     expect(calls[0].body).toMatchObject({
-      source: "sdk_anthropic",
+      source: "sdk_oberhahn",
       provider_message_id: "msg_1",
       spend_details: {
         model_provider: "anthropic",

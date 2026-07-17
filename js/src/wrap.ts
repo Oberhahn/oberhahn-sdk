@@ -178,7 +178,7 @@ function emit(usage: ProviderUsage | null, ctx: EmitContext): void {
   if (!usage) return;
   const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
   ctx.ob.submit(
-    buildEvent(usage, routed, ctx.adapterName, { durationMs: Date.now() - ctx.start, status: "success" }),
+    buildEvent(usage, routed, { durationMs: Date.now() - ctx.start, status: "success" }),
   );
 }
 
@@ -199,7 +199,7 @@ function emitError(ctx: EmitContext): void {
   };
   const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
   ctx.ob.submit(
-    buildEvent(usage, routed, ctx.adapterName, { durationMs: Date.now() - ctx.start, status: "error" }),
+    buildEvent(usage, routed, { durationMs: Date.now() - ctx.start, status: "error" }),
   );
 }
 

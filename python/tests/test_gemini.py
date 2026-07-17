@@ -58,7 +58,7 @@ def test_extracts_generate_content_and_posts_event():
 
     assert res["response_id"] == "resp_1"  # caller still gets the result
     assert len(calls) == 1
-    assert calls[0].body["source"] == "sdk_gemini"
+    assert calls[0].body["source"] == "sdk_oberhahn"
     assert calls[0].body["provider_message_id"] == "resp_1"
     assert calls[0].body["spend_details"] == {
         "model_provider": "google",

@@ -13,11 +13,13 @@ from ._types import ProviderUsage
 
 DEFAULT_CONSUMER_TYPE = "customer"
 
+#: A single, provider-independent ``source`` for every SDK-emitted event. 
+EVENT_SOURCE = "sdk_oberhahn"
+
 
 def build_event(
     usage: ProviderUsage,
     routed: Dict[str, Any],
-    adapter_name: str,
     *,
     duration_ms: Optional[int] = None,
     status: str = "success",
@@ -44,7 +46,7 @@ def build_event(
         spend_details["cost"] = usage.cost
 
     event: Dict[str, Any] = {
-        "source": f"sdk_{adapter_name}",
+        "source": EVENT_SOURCE,
         "consumer_type": routed.get("consumer_type") or DEFAULT_CONSUMER_TYPE,
         "spend_details": spend_details,
         "status": status,

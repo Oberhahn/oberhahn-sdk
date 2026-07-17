@@ -148,7 +148,7 @@ def _emit(usage: Any, ctx: _Ctx) -> None:
         return
     routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
     ctx.ob.submit(
-        build_event(usage, routed, ctx.adapter_name, duration_ms=_duration_ms(ctx), status="success")
+        build_event(usage, routed, duration_ms=_duration_ms(ctx), status="success")
     )
 
 
@@ -164,7 +164,7 @@ def _emit_error(ctx: _Ctx) -> None:
     usage = ProviderUsage(model=model, model_provider=provider, input_tokens=0, output_tokens=0)
     routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
     ctx.ob.submit(
-        build_event(usage, routed, ctx.adapter_name, duration_ms=_duration_ms(ctx), status="error")
+        build_event(usage, routed, duration_ms=_duration_ms(ctx), status="error")
     )
 
 

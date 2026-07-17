@@ -38,10 +38,10 @@ describe("wrap()", () => {
     const event = buildEvent(
       { model: "gpt-4o", model_provider: "openai", input_tokens: 10, output_tokens: 4, cost: 0.42 },
       routeMetadata({}, {}, {}),
-      "openai",
     );
 
     expect(event.spend_details).toMatchObject({ cost: 0.42 });
+    expect(event.source).toBe("sdk_oberhahn");
   });
 
   it("is idempotent — double wrap does not double-emit", async () => {

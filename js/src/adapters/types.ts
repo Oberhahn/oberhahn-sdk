@@ -63,7 +63,9 @@ export interface MethodSpec {
 }
 
 export interface Adapter {
-  /** Canonical provider slug, also used in the event `source` (`sdk_<name>`). */
+  /** Canonical provider slug: the `wrap()` name and the registry key. (The
+   * event `source` is a single constant, `sdk_oberhahn`, for every provider —
+   * the vendor lives in `spend_details.model_provider`.) */
   name: string;
   methods: MethodSpec[];
 }

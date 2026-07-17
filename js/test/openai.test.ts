@@ -77,7 +77,7 @@ describe("openai adapter", () => {
     expect(calls[0].url).toBe("https://oberhahn.test/v0/events");
     expect(calls[0].headers.authorization).toBe("Bearer oak_test");
     expect(calls[0].body).toMatchObject({
-      source: "sdk_openai",
+      source: "sdk_oberhahn",
       consumer_type: "customer",
       provider_message_id: "chatcmpl_1",
       spend_details: {
@@ -101,7 +101,7 @@ describe("openai adapter", () => {
     expect((res as { id: string }).id).toBe("resp_1");
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({
-      source: "sdk_openai",
+      source: "sdk_oberhahn",
       provider_message_id: "resp_1",
       spend_details: {
         model_provider: "openai",
@@ -129,7 +129,7 @@ describe("openai adapter", () => {
     expect((res as { model: string }).model).toBe("text-embedding-3-small");
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({
-      source: "sdk_openai",
+      source: "sdk_oberhahn",
       spend_details: {
         model_provider: "openai",
         model: "text-embedding-3-small",

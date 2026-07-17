@@ -35,10 +35,14 @@ export interface OberhahnEvent {
 
 const DEFAULT_CONSUMER_TYPE = "customer";
 
+/**
+ * A single, provider-independent `source` for every SDK-emitted event. 
+ */
+const EVENT_SOURCE = "sdk_oberhahn";
+
 export function buildEvent(
   usage: ProviderUsage,
   routed: RoutedMetadata,
-  adapterName: string,
   opts: { durationMs?: number; status?: string } = {},
 ): OberhahnEvent {
   const cacheWrite = usage.cache_write_tokens;
@@ -60,7 +64,7 @@ export function buildEvent(
   if (usage.cost !== undefined) spend_details.cost = usage.cost;
 
   const event: OberhahnEvent = {
-    source: `sdk_${adapterName}`,
+    source: EVENT_SOURCE,
     consumer_type: routed.consumer_type ?? DEFAULT_CONSUMER_TYPE,
     spend_details,
     status: opts.status ?? "success",

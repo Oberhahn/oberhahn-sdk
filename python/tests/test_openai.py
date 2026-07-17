@@ -80,7 +80,7 @@ def test_extracts_chat_completion_and_posts_event():
     assert calls[0].url == "https://oberhahn.test/v0/events"
     assert calls[0].headers["authorization"] == "Bearer oak_test"
     body = calls[0].body
-    assert body["source"] == "sdk_openai"
+    assert body["source"] == "sdk_oberhahn"
     assert body["consumer_type"] == "customer"
     assert body["provider_message_id"] == "chatcmpl_1"
     assert body["spend_details"] == {

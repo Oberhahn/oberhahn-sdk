@@ -46,7 +46,7 @@ def test_extracts_converse_usage_and_maps_model():
     bedrock.converse(modelId="us.anthropic.claude-3-5-sonnet-20240620-v1:0", messages=[])
     client.await_pending()
 
-    assert calls[0].body["source"] == "sdk_bedrock"
+    assert calls[0].body["source"] == "sdk_oberhahn"
     assert calls[0].body["spend_details"] == {
         "model_provider": "anthropic",
         "model": "claude-3-5-sonnet",
