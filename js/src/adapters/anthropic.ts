@@ -1,3 +1,4 @@
+import { stripModelDate } from "./normalize.js";
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
 const PROVIDER = "anthropic";
@@ -17,7 +18,7 @@ function fromMessage(
   if (!u) return null;
   const body = args[0] as { model?: string } | undefined;
   const usage: ProviderUsage = {
-    model: msg?.model ?? body?.model ?? "unknown",
+    model: stripModelDate(msg?.model ?? body?.model ?? "unknown"),
     model_provider: PROVIDER,
     input_tokens: u.input_tokens ?? 0,
     output_tokens: u.output_tokens ?? 0,

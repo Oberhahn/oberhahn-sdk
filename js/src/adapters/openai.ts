@@ -1,3 +1,4 @@
+import { stripModelDate } from "./normalize.js";
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
 const PROVIDER = "openai";
@@ -31,7 +32,7 @@ function usageFrom(
   // gateway.ts `extractOpenAiUsage` / adapters.ts `billedInput`. (Anthropic's
   // input_tokens is cache-exclusive, so its adapter needs no subtraction.)
   const usage: ProviderUsage = {
-    model: result?.model ?? body?.model ?? "unknown",
+    model: stripModelDate(result?.model ?? body?.model ?? "unknown"),
     model_provider: PROVIDER,
     input_tokens: Math.max(0, input - (cacheRead ?? 0)),
     output_tokens: output,

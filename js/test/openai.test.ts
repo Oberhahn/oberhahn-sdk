@@ -49,6 +49,22 @@ function fakeOpenAI(handlers: {
 }
 
 describe("openai adapter", () => {
+  it("normalizes a dated snapshot model to its bare alias", async () => {
+    const { client, calls } = initCapturing();
+    const openai = wrap(
+      fakeOpenAI({
+        chat: () => ({ id: "c", model: "gpt-4o-2024-08-06", usage: { prompt_tokens: 10, completion_tokens: 2 } }),
+      }),
+    );
+
+    await openai.chat.completions.create({ model: "gpt-4o-2024-08-06", messages: [] });
+    await client.awaitPending();
+
+    expect(calls[0].body).toMatchObject({
+      spend_details: { model_provider: "openai", model: "gpt-4o" },
+    });
+  });
+
   it("extracts usage from chat.completions.create and posts an event", async () => {
     const { client, calls } = initCapturing();
     const openai = wrap(fakeOpenAI());

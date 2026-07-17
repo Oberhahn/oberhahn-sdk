@@ -29,6 +29,50 @@ describe("bedrock adapter", () => {
     });
   });
 
+  it("normalizes every vendor family, stripping version + date suffixes", () => {
+    const cases: Array<[string, { provider: string; model: string }]> = [
+      // Anthropic — solid date + revision.
+      ["anthropic.claude-3-5-sonnet-20241022-v2:0", { provider: "anthropic", model: "claude-3-5-sonnet" }],
+      ["anthropic.claude-sonnet-4-20250514-v1:0", { provider: "anthropic", model: "claude-sonnet-4" }],
+      ["anthropic.claude-opus-4-20250514-v1:0", { provider: "anthropic", model: "claude-opus-4" }],
+      // Meta — no date, keeps the -instruct/size suffix.
+      ["meta.llama3-1-70b-instruct-v1:0", { provider: "meta", model: "llama3-1-70b-instruct" }],
+      ["meta.llama3-2-90b-instruct-v1:0", { provider: "meta", model: "llama3-2-90b-instruct" }],
+      // Mistral — trailing 4-digit YYMM tag is part of the name, NOT a date.
+      ["mistral.mistral-large-2407-v1:0", { provider: "mistral", model: "mistral-large-2407" }],
+      ["mistral.pixtral-large-2502-v1:0", { provider: "mistral", model: "pixtral-large-2502" }],
+      // Cohere.
+      ["cohere.command-r-v1:0", { provider: "cohere", model: "command-r" }],
+      ["cohere.command-r-plus-v1:0", { provider: "cohere", model: "command-r-plus" }],
+      // AI21.
+      ["ai21.jamba-1-5-large-v1:0", { provider: "ai21", model: "jamba-1-5-large" }],
+      // Amazon.
+      ["amazon.nova-pro-v1:0", { provider: "amazon", model: "nova-pro" }],
+      ["amazon.nova-lite-v1:0", { provider: "amazon", model: "nova-lite" }],
+      ["amazon.titan-text-premier-v1:0", { provider: "amazon", model: "titan-text-premier" }],
+    ];
+    for (const [id, expected] of cases) {
+      expect(mapBedrockModel(id), id).toEqual(expected);
+    }
+  });
+
+  it("drops any cross-region inference-profile prefix without a geo allowlist", () => {
+    // us / eu / apac / us-gov (hyphenated) / global all resolve to the same vendor+model.
+    for (const geo of ["us", "eu", "apac", "us-gov", "global"]) {
+      expect(mapBedrockModel(`${geo}.anthropic.claude-3-5-sonnet-20240620-v1:0`)).toEqual({
+        provider: "anthropic",
+        model: "claude-3-5-sonnet",
+      });
+    }
+  });
+
+  it("falls back to the hosting layer for a bare id with no vendor prefix", () => {
+    expect(mapBedrockModel("some-custom-model")).toEqual({
+      provider: "bedrock",
+      model: "some-custom-model",
+    });
+  });
+
   it("extracts usage from a ConverseCommand and maps the model", async () => {
     const { client, calls } = initCapturing();
     const bedrock = wrap(

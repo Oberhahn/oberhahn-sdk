@@ -1,3 +1,4 @@
+import { stripModelDate } from "./normalize.js";
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
 /** Bedrock is a hosting layer: `model_provider` is the real model vendor
@@ -14,19 +15,42 @@ interface BedrockUsage {
 
 /**
  * Map a Bedrock model id to a canonical `{ provider, model }` so it prices on
- * OBERHAHN's existing table. Strips the optional region prefix (`us.`, `eu.`,
- * `apac.`, `us-gov.`) and the trailing version/date suffixes.
+ * OBERHAHN's existing table.
+ *
+ * A Bedrock id is `[<geo>.]<vendor>.<name>` — an optional cross-region
+ * inference-profile prefix (`us.`, `eu.`, `apac.`, `us-gov.`, `global.`, …),
+ * the model vendor (`anthropic`/`amazon`/`meta`/`mistral`/`cohere`/`ai21`/…),
+ * then the model name. Model names never contain a `.`, so the segment count
+ * tells us whether a geo prefix is present — no geo allowlist to maintain.
+ * The trailing version/date suffixes are stripped so the name matches the
+ * pricing table.
  *
  *   "us.anthropic.claude-3-5-sonnet-20240620-v1:0"
  *     → { provider: "anthropic", model: "claude-3-5-sonnet" }
+ *   "meta.llama3-1-70b-instruct-v1:0"
+ *     → { provider: "meta", model: "llama3-1-70b-instruct" }
  */
 export function mapBedrockModel(modelId: string): { provider: string; model: string } {
-  const withoutRegion = modelId.replace(/^(us|eu|apac|us-gov)\./, "");
-  const dot = withoutRegion.indexOf(".");
-  // The vendor prefix (anthropic./amazon./meta./…) is the real model vendor.
-  const provider = dot >= 0 ? withoutRegion.slice(0, dot) : HOSTING;
-  let model = dot >= 0 ? withoutRegion.slice(dot + 1) : withoutRegion;
-  model = model.replace(/-v\d+:\d+$/, "").replace(/:\d+$/, "").replace(/-\d{8}$/, "");
+  const parts = modelId.split(".");
+  let provider: string;
+  let model: string;
+  if (parts.length >= 3) {
+    // <geo>.<vendor>.<name> — drop the geo prefix, vendor is the real vendor.
+    provider = parts[1];
+    model = parts.slice(2).join(".");
+  } else if (parts.length === 2) {
+    // <vendor>.<name>
+    provider = parts[0];
+    model = parts[1];
+  } else {
+    // Bare name with no vendor prefix — fall back to the hosting layer.
+    provider = HOSTING;
+    model = parts[0];
+  }
+  // Strip Bedrock's hosting revision (`-v2:0` / bare `:0`) first, then the
+  // shared dated-snapshot suffix — so `claude-3-5-sonnet-20240620-v1:0` reduces
+  // to the bare `claude-3-5-sonnet` the pricing table keys on.
+  model = stripModelDate(model.replace(/-v\d+:\d+$/, "").replace(/:\d+$/, ""));
   return { provider, model };
 }
 

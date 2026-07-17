@@ -22,6 +22,24 @@ function fakeAnthropic(create?: (body: unknown) => unknown) {
 }
 
 describe("anthropic adapter", () => {
+  it("normalizes a dated snapshot model to its bare alias", async () => {
+    const { client, calls } = initCapturing();
+    const anthropic = wrap(
+      fakeAnthropic(async () => ({
+        id: "msg",
+        model: "claude-3-5-sonnet-20240620",
+        usage: { input_tokens: 5, output_tokens: 2 },
+      })),
+    );
+
+    await anthropic.messages.create({ model: "claude-3-5-sonnet-20240620", messages: [] });
+    await client.awaitPending();
+
+    expect(calls[0].body).toMatchObject({
+      spend_details: { model_provider: "anthropic", model: "claude-3-5-sonnet" },
+    });
+  });
+
   it("carries the cache write/read split and totals cached_tokens", async () => {
     const { client, calls } = initCapturing();
     const anthropic = wrap(fakeAnthropic());

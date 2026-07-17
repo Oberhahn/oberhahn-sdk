@@ -1,3 +1,4 @@
+import { stripModelDate } from "./normalize.js";
 import type { Adapter, MethodSpec, ProviderUsage } from "./types.js";
 
 /** Registry slug + event source (`sdk_gemini`) — the SDK identity. */
@@ -6,6 +7,15 @@ const PROVIDER = "gemini";
  * priced under `google` server-side (`gemini-* → google`), so `model_provider`
  * is `google`, not the `gemini` SDK slug. */
 const VENDOR = "google";
+
+/** Gemini's stable-version suffix (`gemini-1.5-pro-002`) — the Gemini analog of
+ * a dated snapshot. Strip it (along with any date) so the model matches the
+ * bare pricing-table key and rolls up in breakdowns. Kept local to this adapter
+ * so the 3-digit strip can't touch another provider's model id. */
+const GEMINI_VERSION_RE = /-\d{3}$/;
+function normalizeGeminiModel(model: string): string {
+  return stripModelDate(model).replace(GEMINI_VERSION_RE, "");
+}
 
 interface GeminiUsage {
   promptTokenCount?: number;
@@ -36,7 +46,7 @@ function usageFrom(
   // doesn't bill the cached tokens twice — same rule as OpenAI. Gemini reports
   // thinking tokens separately in thoughtsTokenCount, which we don't fold in.
   const usage: ProviderUsage = {
-    model: result?.modelVersion ?? body?.model ?? "unknown",
+    model: normalizeGeminiModel(result?.modelVersion ?? body?.model ?? "unknown"),
     model_provider: VENDOR,
     input_tokens: Math.max(0, input - (cacheRead ?? 0)),
     output_tokens: output,
@@ -67,7 +77,7 @@ function usageFromStream(chunks: unknown[], args: unknown[]): ProviderUsage | nu
 
 const modelInfo = (args: unknown[]) => ({
   model_provider: VENDOR,
-  model: (args[0] as { model?: string } | undefined)?.model ?? "unknown",
+  model: normalizeGeminiModel((args[0] as { model?: string } | undefined)?.model ?? "unknown"),
 });
 
 const methods: MethodSpec[] = [

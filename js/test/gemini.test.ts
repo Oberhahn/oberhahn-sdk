@@ -39,6 +39,26 @@ function fakeGemini(handlers: {
 }
 
 describe("gemini adapter", () => {
+  it("normalizes the stable-version suffix off modelVersion", async () => {
+    const { client, calls } = initCapturing();
+    const gemini = wrap(
+      fakeGemini({
+        generate: () => ({
+          responseId: "r",
+          modelVersion: "gemini-1.5-pro-002",
+          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 3 },
+        }),
+      }),
+    );
+
+    await gemini.models.generateContent({ model: "gemini-1.5-pro-002", contents: "hi" } as never);
+    await client.awaitPending();
+
+    expect(calls[0].body).toMatchObject({
+      spend_details: { model_provider: "google", model: "gemini-1.5-pro" },
+    });
+  });
+
   it("extracts usage from models.generateContent and posts an event", async () => {
     const { client, calls } = initCapturing();
     const gemini = wrap(fakeGemini());
