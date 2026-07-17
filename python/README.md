@@ -33,7 +33,7 @@ from openai import OpenAI
 
 oberhahn.init(api_key="oak_...")   # oak_… key → org + consumer scope
 
-# Provider is auto-detected from the client; pass provider=... to override.
+# Provider is auto-detected from the client.
 client = oberhahn.wrap(
     OpenAI(),
     metadata={"environment": "production", "feature": "support_agent"},
@@ -51,12 +51,9 @@ Works the same for `AsyncOpenAI` / `AsyncAnthropic` — `await` the call as usua
 ## API
 
 - **`init(**config)`** — set global config (also read from env). Returns the client.
-- **`wrap(client, provider=None, *, metadata=None)`** — patch the provider's
-  usage-bearing methods in place and return the same client. `provider` is
-  **auto-detected** from the client when omitted (`wrap(OpenAI())`); pass it
-  explicitly (`wrap(client, "openai")`) for OpenAI-compatible clients like
-  Azure/OpenRouter, which look like `openai`. If it can't be detected, it raises
-  — pass `provider`.
+- **`wrap(client, *, metadata=None)`** — patch the provider's usage-bearing
+  methods in place and return the same client. The provider is **auto-detected**
+  from the client (`wrap(OpenAI())`).
 - **`ob_metadata`** (or `obMetadata`) as a keyword argument on a request →
   per-call attribution; stripped from the kwargs before the provider call is
   forwarded.

@@ -22,7 +22,7 @@ import OpenAI from "openai";
 
 init({ apiKey: process.env.OBERHAHN_API_KEY }); // oak_… key → org + consumer scope
 
-// Provider is auto-detected from the client; pass `{ provider }` to override.
+// Provider is auto-detected from the client.
 const openai = wrap(new OpenAI(), {
   metadata: { environment: "production", feature: "support_agent" },
 });
@@ -39,14 +39,7 @@ await openai.chat.completions.create({
 - **`init(config)`** — set global config (also read from env). Returns the client.
 - **`wrap(client, options?)`** — patch the provider's usage-bearing methods in
   place and return the same client (typed as itself). The provider is
-  auto-detected from the client:
-  - `wrap(client)` — auto-detect.
-  - `wrap(client, { provider: "openai", metadata })` — set it explicitly (needed
-    for OpenAI-compatible clients like Azure/OpenRouter, which look like
-    `openai`). `provider` is typed with autocomplete.
-  - `wrap(client, "openai")` — positional form also works.
-
-  If the provider can't be detected, it throws — pass `{ provider }`.
+  auto-detected from the client.
 - **`obMetadata`** (or `ob_metadata`) on a request → per-call attribution;
   stripped from the args before the provider call is forwarded.
 - **`flush()`** — await every event submitted so far. Optional: submission is
