@@ -22,7 +22,6 @@ import OpenAI from "openai";
 
 init({ apiKey: process.env.OBERHAHN_API_KEY }); // oak_… key → org + consumer scope
 
-// Provider is auto-detected from the client.
 const openai = wrap(new OpenAI(), {
   metadata: { environment: "production", feature: "support_agent" },
 });
