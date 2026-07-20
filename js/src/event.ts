@@ -30,6 +30,9 @@ export interface OberhahnEvent {
   status: string;
   /** Wall-clock duration of the provider call, in milliseconds. */
   duration_ms?: number;
+  /** Provider-reported cost, top-level (the field the server reads on ingest).
+   * Mirrors `spend_details.cost`. */
+  cost?: number;
   custom?: Record<string, string>;
 }
 
@@ -74,6 +77,11 @@ export function buildEvent(
   if (routed.task_id) event.task_id = routed.task_id;
   if (routed.provider_session_id) event.provider_session_id = routed.provider_session_id;
   if (usage.provider_message_id) event.provider_message_id = usage.provider_message_id;
+  // Provider-reported cost also goes top-level: the server reads the reported
+  // cost from `event.cost` (see oberhahn-loop normalize.ts), so a nested
+  // `spend_details.cost` alone would be ignored and the model re-priced
+  // (yielding cost_unknown for unpriceable ids like OpenRouter's).
+  if (usage.cost !== undefined) event.cost = usage.cost;
   // Adapter-derived custom tags (e.g. `provider: "openrouter"`) sit *under*
   // user `obMetadata` custom, so an explicit caller value always wins.
   const custom = { ...usage.custom, ...routed.custom };

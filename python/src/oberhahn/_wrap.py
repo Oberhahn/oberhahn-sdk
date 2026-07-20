@@ -13,12 +13,22 @@ import inspect
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
 
 from ._client import OberhahnClient
 from ._event import build_event
 from ._metadata import route_metadata
 from ._types import Adapter, MethodSpec, ProviderUsage
+
+
+class WrapOptions(TypedDict, total=False):
+    """Options for ``wrap(client, options)`` — mirrors the JS ``WrapOptions``."""
+
+    #: Provider slug. Omit to auto-detect from the client.
+    provider: str
+    #: Per-client attribution, merged above ``init`` metadata, below ``ob_metadata``.
+    metadata: Dict[str, Any]
+
 
 #: Marker so a client (and each patched method) is only wrapped once.
 _WRAPPED = "_oberhahn_wrapped"
@@ -33,6 +43,9 @@ class _Ctx:
     kwargs: Dict[str, Any]
     spec: MethodSpec
     start: float = 0.0  # time.monotonic() captured just before the provider call
+    #: Routing layer to record as ``custom.provider`` (e.g. "openrouter") when
+    #: the requested slug isn't the adapter's own name. ``None`` for a native call.
+    provider_tag: Optional[str] = None
 
 
 def patch_client(
@@ -40,12 +53,13 @@ def patch_client(
     adapter: Adapter,
     ob: OberhahnClient,
     metadata: Optional[Dict[str, Any]] = None,
+    provider_tag: Optional[str] = None,
 ) -> Any:
     if getattr(client, _WRAPPED, False):
         return client
     patched = 0
     for spec in adapter.methods:
-        if _patch_method(client, spec, ob, adapter.name, metadata):
+        if _patch_method(client, spec, ob, adapter.name, metadata, provider_tag):
             patched += 1
     if patched == 0:
         paths = ", ".join(spec.path for spec in adapter.methods)
@@ -67,6 +81,7 @@ def _patch_method(
     ob: OberhahnClient,
     adapter_name: str,
     client_metadata: Optional[Dict[str, Any]],
+    provider_tag: Optional[str] = None,
 ) -> bool:
     """Patch one method in place. Returns ``True`` if it existed and was wrapped."""
     *parents, key = spec.path.split(".")
@@ -84,7 +99,10 @@ def _patch_method(
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         cleaned_kwargs, per_call = _strip_ob_metadata(kwargs)
         is_stream = spec.is_stream(cleaned_kwargs) if spec.is_stream else False
-        ctx = _Ctx(ob, adapter_name, client_metadata, per_call, cleaned_kwargs, spec, time.monotonic())
+        ctx = _Ctx(
+            ob, adapter_name, client_metadata, per_call, cleaned_kwargs, spec,
+            time.monotonic(), provider_tag,
+        )
         try:
             result = original(*args, **cleaned_kwargs)
         except BaseException:
@@ -143,9 +161,20 @@ def _duration_ms(ctx: _Ctx) -> int:
     return int((time.monotonic() - ctx.start) * 1000)
 
 
+def _tag_provider(usage: ProviderUsage, tag: Optional[str]) -> None:
+    """Record the routing layer as ``custom.provider`` (e.g. "openrouter"),
+    without overwriting a tag the adapter already set."""
+    if not tag:
+        return
+    custom = dict(usage.custom or {})
+    custom.setdefault("provider", tag)
+    usage.custom = custom
+
+
 def _emit(usage: Any, ctx: _Ctx) -> None:
     if usage is None:
         return
+    _tag_provider(usage, ctx.provider_tag)
     routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
     ctx.ob.submit(
         build_event(usage, routed, duration_ms=_duration_ms(ctx), status="success")
@@ -162,6 +191,7 @@ def _emit_error(ctx: _Ctx) -> None:
         return  # adapter says this call isn't a billable operation — skip
     provider, model = info
     usage = ProviderUsage(model=model, model_provider=provider, input_tokens=0, output_tokens=0)
+    _tag_provider(usage, ctx.provider_tag)
     routed = route_metadata(ctx.ob.metadata, ctx.client_metadata, ctx.per_call)
     ctx.ob.submit(
         build_event(usage, routed, duration_ms=_duration_ms(ctx), status="error")

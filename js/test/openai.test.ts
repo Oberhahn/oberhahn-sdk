@@ -194,4 +194,56 @@ describe("openai adapter", () => {
       spend_details: { input_tokens: 10, output_tokens: 5, model: "gpt-4o" },
     });
   });
+
+  it("tags an OpenAI-compatible provider as custom.provider (model_provider stays openai)", async () => {
+    const { client, calls } = initCapturing();
+    const openrouter = wrap(fakeOpenAI(), { provider: "openrouter" });
+
+    await openrouter.chat.completions.create({ model: "gpt-4o", messages: [] });
+    await client.awaitPending();
+
+    expect(calls[0].body.spend_details.model_provider).toBe("openai");
+    expect(calls[0].body.custom).toEqual({ provider: "openrouter" });
+  });
+
+  it("does not tag custom.provider for a native openai client", async () => {
+    const { client, calls } = initCapturing();
+    const openai = wrap(fakeOpenAI());
+
+    await openai.chat.completions.create({ model: "gpt-4o", messages: [] });
+    await client.awaitPending();
+
+    expect(calls[0].body).not.toHaveProperty("custom");
+  });
+
+  it("lets a user obMetadata.provider win over the alias tag", async () => {
+    const { client, calls } = initCapturing();
+    const openrouter = wrap(fakeOpenAI(), { provider: "openrouter" });
+
+    await openrouter.chat.completions.create({
+      model: "gpt-4o",
+      messages: [],
+      obMetadata: { provider: "my_gateway" },
+    } as never);
+    await client.awaitPending();
+
+    expect(calls[0].body.custom).toMatchObject({ provider: "my_gateway" });
+  });
+
+  it("forwards a provider-reported cost when present", async () => {
+    const { client, calls } = initCapturing();
+    const openrouter = wrap(
+      fakeOpenAI({
+        chat: () => ({ id: "or_1", model: "gpt-4o", usage: { prompt_tokens: 10, completion_tokens: 5, cost: 0.00042 } }),
+      }),
+      { provider: "openrouter" },
+    );
+
+    await openrouter.chat.completions.create({ model: "gpt-4o", messages: [] });
+    await client.awaitPending();
+
+    // Cost is forwarded both top-level (the field the server reads) and nested.
+    expect(calls[0].body.cost).toBe(0.00042);
+    expect(calls[0].body.spend_details.cost).toBe(0.00042);
+  });
 });

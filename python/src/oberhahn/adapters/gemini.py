@@ -9,8 +9,21 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+import re
+
 from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
+from ._normalize import strip_model_date
+
+#: Gemini's stable-version suffix (``gemini-1.5-pro-002``) — the Gemini analog of
+#: a dated snapshot. Strip it (along with any date) so the model matches the bare
+#: pricing-table key. Kept local so the 3-digit strip can't touch another
+#: provider's model id.
+_GEMINI_VERSION_RE = re.compile(r"-\d{3}$")
+
+
+def _normalize_gemini_model(model: str) -> str:
+    return _GEMINI_VERSION_RE.sub("", strip_model_date(model))
 
 #: Registry slug (the ``wrap()`` name) — the SDK identity.
 PROVIDER = "gemini"
@@ -31,7 +44,7 @@ def _usage_from(result: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
     output = coalesce(get(usage_block, "candidates_token_count"))
     cache_read = get(usage_block, "cached_content_token_count")
 
-    model = get(result, "model_version") or kwargs.get("model") or "unknown"
+    model = _normalize_gemini_model(get(result, "model_version") or kwargs.get("model") or "unknown")
     # Gemini's prompt_token_count is the TOTAL prompt and already includes the
     # cached_content_token_count subset (the cached part of the prompt). Report
     # only the non-cached remainder as input_tokens so the server (which prices
@@ -72,7 +85,7 @@ def _usage_from_stream(chunks: List[Any], kwargs: Dict[str, Any]) -> Optional[Pr
 
 def _model_info(kwargs: Dict[str, Any]):
     """Provider + model from the request kwargs alone, for error events."""
-    return (VENDOR, kwargs.get("model") or "unknown")
+    return (VENDOR, _normalize_gemini_model(kwargs.get("model") or "unknown"))
 
 
 gemini_adapter = Adapter(

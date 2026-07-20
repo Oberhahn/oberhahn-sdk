@@ -41,7 +41,7 @@ def test_extracts_message_usage_and_posts_event():
                 },
             }
         ),
-        "anthropic",
+        {"provider": "anthropic"},
     )
 
     res = anthropic.messages.create(model="claude-3-5-sonnet", messages=[])
@@ -77,7 +77,7 @@ def test_null_cache_counts_are_dropped():
                 },
             }
         ),
-        "anthropic",
+        {"provider": "anthropic"},
     )
 
     anthropic.messages.create(model="x")
@@ -102,7 +102,7 @@ def test_captures_streamed_usage():
         return gen()
 
     client, calls = init_capturing()
-    anthropic = oberhahn.wrap(fake_anthropic(handler), "anthropic")
+    anthropic = oberhahn.wrap(fake_anthropic(handler), {"provider": "anthropic"})
 
     stream = anthropic.messages.create(model="claude-3-5-sonnet", stream=True)
     seen = [chunk for chunk in stream]
@@ -120,8 +120,8 @@ def test_idempotent_double_wrap():
     base = fake_anthropic(
         lambda _b: {"id": "x", "model": "claude", "usage": {"input_tokens": 1, "output_tokens": 1}}
     )
-    once = oberhahn.wrap(base, "anthropic")
-    twice = oberhahn.wrap(once, "anthropic")
+    once = oberhahn.wrap(base, {"provider": "anthropic"})
+    twice = oberhahn.wrap(once, {"provider": "anthropic"})
 
     assert twice is once
     once.messages.create(model="claude")

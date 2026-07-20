@@ -40,7 +40,7 @@ def test_extracts_converse_usage_and_maps_model():
     client, calls = init_capturing()
     bedrock = oberhahn.wrap(
         fake_bedrock(lambda _k: {"usage": {"inputTokens": 500, "outputTokens": 90}}),
-        "bedrock",
+        {"provider": "bedrock"},
     )
 
     bedrock.converse(modelId="us.anthropic.claude-3-5-sonnet-20240620-v1:0", messages=[])
@@ -60,7 +60,7 @@ def test_unpatched_method_passes_through_no_event():
     client, calls = init_capturing()
     bedrock = oberhahn.wrap(
         fake_bedrock(lambda _k: {"usage": {"inputTokens": 1, "outputTokens": 1}}),
-        "bedrock",
+        {"provider": "bedrock"},
     )
 
     res = bedrock.list_foundation_models()
@@ -78,7 +78,7 @@ def test_routes_ob_metadata_off_kwargs():
         return {"usage": {"inputTokens": 3, "outputTokens": 1}}
 
     client, calls = init_capturing()
-    bedrock = oberhahn.wrap(fake_bedrock(responder), "bedrock")
+    bedrock = oberhahn.wrap(fake_bedrock(responder), {"provider": "bedrock"})
 
     bedrock.converse(
         modelId="anthropic.claude-3-haiku-20240307-v1:0",
@@ -99,7 +99,7 @@ def test_failed_converse_emits_error_event_with_mapped_model():
         raise RuntimeError("bedrock down")
 
     client, calls = init_capturing()
-    bedrock = oberhahn.wrap(fake_bedrock(boom), "bedrock")
+    bedrock = oberhahn.wrap(fake_bedrock(boom), {"provider": "bedrock"})
 
     with pytest.raises(RuntimeError, match="bedrock down"):
         bedrock.converse(modelId="us.anthropic.claude-3-5-sonnet-20240620-v1:0", messages=[])
@@ -121,7 +121,7 @@ def test_reads_usage_from_converse_stream():
         return {"stream": gen()}
 
     client, calls = init_capturing()
-    bedrock = oberhahn.wrap(responder and fake_bedrock(responder), "bedrock")
+    bedrock = oberhahn.wrap(responder and fake_bedrock(responder), {"provider": "bedrock"})
 
     res = bedrock.converse_stream(modelId="anthropic.claude-3-haiku-20240307-v1:0", messages=[])
     seen = [event for event in res["stream"]]

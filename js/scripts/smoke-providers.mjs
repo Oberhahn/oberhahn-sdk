@@ -86,18 +86,18 @@ export const SMOKE_PROVIDERS = {
   },
 
   async openrouter(streaming, meta) {
-    // OpenRouter is OpenAI-wire-compatible: use the OpenAI client pointed at
-    // OpenRouter's base URL with an OPENROUTER_API_KEY. (On this branch the
-    // openai adapter reads the usage, so model_provider is "openai"; the native
-    // @openrouter/sdk adapter — which splits the routed vendor and tags
-    // custom.provider:"openrouter" — is a separate integration.)
+    // OpenRouter is OpenAI-wire-compatible: the OpenAI client pointed at
+    // OpenRouter's base URL, wrapped with an explicit provider so the event is
+    // tagged custom.provider="openrouter" (model_provider stays "openai").
     const { default: OpenAI } = await import("openai");
     if (!process.env.OPENROUTER_API_KEY) die("Set OPENROUTER_API_KEY for the OpenRouter smoke.");
     const baseURL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
     const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
-    const client = wrap(new OpenAI({ baseURL, apiKey: process.env.OPENROUTER_API_KEY }));
+    const client = wrap(new OpenAI({ baseURL, apiKey: process.env.OPENROUTER_API_KEY }), { provider: "openrouter" });
     console.log(`  provider : openrouter (${model} @ ${baseURL}${streaming ? ", streaming" : ""})`);
-    const args = { model, max_tokens: 100, messages: [{ role: "user", content: PROMPT }], obMetadata: meta };
+    // usage.include asks OpenRouter to report cost, which the OpenAI adapter
+    // forwards to spend_details.cost.
+    const args = { model, max_tokens: 100, messages: [{ role: "user", content: PROMPT }], usage: { include: true }, obMetadata: meta };
     if (streaming) {
       const s = await client.chat.completions.create({ ...args, stream: true, stream_options: { include_usage: true } });
       let n = 0;

@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
+from ._normalize import strip_model_date
 
 PROVIDER = "openai"
 
@@ -22,7 +23,7 @@ def _usage_from(result: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
     if cache_read is None:
         cache_read = get(usage_block, "input_tokens_details", "cached_tokens")
 
-    model = get(result, "model") or kwargs.get("model") or "unknown"
+    model = strip_model_date(get(result, "model") or kwargs.get("model") or "unknown")
     # OpenAI's prompt_tokens/input_tokens is the TOTAL prompt and already
     # includes the *_tokens_details.cached_tokens subset. Report only the
     # non-cached remainder as input_tokens so the server (which prices
@@ -37,6 +38,12 @@ def _usage_from(result: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
     )
     if cache_read is not None:
         usage.cache_read_tokens = cache_read
+    # OpenAI-compatible gateways (e.g. OpenRouter) can report a real cost in the
+    # usage block; forward it when present so the server uses it instead of
+    # deriving from tokens. Plain OpenAI omits it → stays None.
+    cost = get(usage_block, "cost")
+    if cost is not None:
+        usage.cost = cost
     message_id = get(result, "id")
     if message_id:
         usage.provider_message_id = message_id

@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from .._types import Adapter, MethodSpec, ProviderUsage
 from .._util import coalesce, get
+from ._normalize import strip_model_date
 
 PROVIDER = "anthropic"
 
@@ -20,7 +21,7 @@ def _from_message(msg: Any, kwargs: Dict[str, Any]) -> Optional[ProviderUsage]:
     usage_block = get(msg, "usage")
     if usage_block is None:
         return None
-    model = get(msg, "model") or kwargs.get("model") or "unknown"
+    model = strip_model_date(get(msg, "model") or kwargs.get("model") or "unknown")
     usage = ProviderUsage(
         model=model,
         model_provider=PROVIDER,

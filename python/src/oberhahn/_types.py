@@ -2,7 +2,7 @@
 
 Adding a provider is one file: implement the pieces of ``Adapter`` (a ``name``
 plus a list of ``MethodSpec``), then register it in ``_registry.py`` under its
-provider slug. The caller selects it explicitly via ``wrap(client, "<name>")``,
+provider slug. The caller selects it explicitly via ``wrap(client, {"provider": "<name>"})``,
 so there is no structural detection to maintain — the ``methods`` list alone
 drives which functions get monkey-patched.
 

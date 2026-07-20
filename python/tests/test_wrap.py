@@ -66,6 +66,7 @@ def test_build_event_forwards_provider_reported_cost_when_present():
     usage = ProviderUsage(model="gpt-4o", model_provider="openai", input_tokens=10, output_tokens=4, cost=0.42)
     event = build_event(usage, {"consumer_type": "customer"})
 
+    assert event["cost"] == 0.42  # top-level (the field the server reads)
     assert event["spend_details"]["cost"] == 0.42
     assert event["source"] == "sdk_oberhahn"
 
@@ -73,8 +74,8 @@ def test_build_event_forwards_provider_reported_cost_when_present():
 def test_idempotent_double_wrap_does_not_double_emit():
     client, calls = init_capturing()
     base = fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}})
-    once = oberhahn.wrap(base, "openai")
-    twice = oberhahn.wrap(once, "openai")
+    once = oberhahn.wrap(base, {"provider": "openai"})
+    twice = oberhahn.wrap(once, {"provider": "openai"})
 
     assert twice is once
     once.chat.completions.create(model="gpt-4o")
@@ -85,14 +86,14 @@ def test_idempotent_double_wrap_does_not_double_emit():
 def test_throws_on_unknown_provider():
     init_capturing()
     with pytest.raises(ValueError, match="unknown provider"):
-        oberhahn.wrap(types.SimpleNamespace(chat=None), "not-a-provider")
+        oberhahn.wrap(types.SimpleNamespace(chat=None), {"provider": "not-a-provider"})
 
 
 def test_warns_and_returns_client_when_no_methods():
     init_capturing()
     weird = types.SimpleNamespace(do=lambda: 1)
     with pytest.warns(UserWarning, match="nothing patched"):
-        result = oberhahn.wrap(weird, "openai")
+        result = oberhahn.wrap(weird, {"provider": "openai"})
     assert result is weird
 
 
@@ -110,7 +111,7 @@ def test_never_throws_into_request_path_on_submit_failure():
     )
     openai = oberhahn.wrap(
         fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
-        "openai",
+        {"provider": "openai"},
     )
 
     # The wrapped call returns normally even though ingest 400s.
@@ -135,7 +136,7 @@ def test_retries_retryable_ingest_failures():
     )
     openai = oberhahn.wrap(
         fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
-        "openai",
+        {"provider": "openai"},
     )
 
     openai.chat.completions.create(model="gpt-4o")
@@ -147,7 +148,7 @@ def test_success_event_has_status_and_duration():
     client, calls = init_capturing()
     openai = oberhahn.wrap(
         fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
-        "openai",
+        {"provider": "openai"},
     )
     openai.chat.completions.create(model="gpt-4o")
     client.await_pending()
@@ -161,7 +162,7 @@ def test_failed_call_emits_error_event_and_reraises():
         raise RuntimeError("provider down")
 
     client, calls = init_capturing()
-    openai = oberhahn.wrap(fake_openai(boom), "openai")
+    openai = oberhahn.wrap(fake_openai(boom), {"provider": "openai"})
 
     with pytest.raises(RuntimeError, match="provider down"):
         openai.chat.completions.create(model="gpt-4o")
@@ -185,7 +186,7 @@ def test_error_reporting_failure_never_masks_original_exception(monkeypatch):
     client, _calls = init_capturing()
     openai = oberhahn.wrap(
         fake_openai(lambda _b: (_ for _ in ()).throw(RuntimeError("provider down"))),
-        "openai",
+        {"provider": "openai"},
     )
     monkeypatch.setattr(client, "submit", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("submit boom")))
     with pytest.raises(RuntimeError, match="provider down"):
@@ -196,7 +197,7 @@ def test_module_level_flush_drains_pending():
     _client, calls = init_capturing()
     openai = oberhahn.wrap(
         fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
-        "openai",
+        {"provider": "openai"},
     )
 
     openai.chat.completions.create(model="gpt-4o")
@@ -214,7 +215,7 @@ def test_noop_passthrough_when_disabled():
     )
     openai = oberhahn.wrap(
         fake_openai(lambda _b: {"id": "x", "model": "gpt-4o", "usage": {"prompt_tokens": 1, "completion_tokens": 1}}),
-        "openai",
+        {"provider": "openai"},
     )
 
     res = openai.chat.completions.create(model="gpt-4o")
@@ -241,7 +242,7 @@ def test_wraps_an_async_client():
         return _Client()
 
     client, calls = init_capturing()
-    openai = oberhahn.wrap(build(), "openai")
+    openai = oberhahn.wrap(build(), {"provider": "openai"})
 
     async def run():
         res = await openai.chat.completions.create(model="gpt-4o")

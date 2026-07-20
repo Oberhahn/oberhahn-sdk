@@ -37,13 +37,15 @@ renames a field fails CI.
 
 ## Live smoke tests
 
-Two scripts make a real (tiny, cheap) provider call against a **deployed**
-OBERHAHN endpoint and read the event back. Config comes from `python/.env`
+One script makes a real (tiny, cheap) provider call against a **deployed**
+OBERHAHN endpoint and reads the event back. Config comes from `python/.env`
 (auto-loaded; real environment variables still win):
 
 ```sh
-python scripts/smoke.py          # one non-streaming call (openai | anthropic | bedrock)
-python scripts/smoke_stream.py   # one streaming call (openai | anthropic)
+python scripts/smoke.py                # one non-streaming call (env-driven)
+python scripts/smoke.py --stream       # one streaming call
+python scripts/smoke.py --interactive  # prompt for provider / key / model / streaming
+python scripts/smoke.py --all          # every provider with creds, both modes
 ```
 
 Required env: `OBERHAHN_API_KEY`, `OBERHAHN_BASE_URL` (**incl. the `/v0`

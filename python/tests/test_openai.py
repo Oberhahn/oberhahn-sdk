@@ -68,9 +68,23 @@ def fake_openai(
     return client
 
 
+def test_normalizes_dated_snapshot_model_to_bare_alias():
+    # OpenAI resolves "gpt-4o-mini" to a dated snapshot in the response; the
+    # adapter strips the date so the id matches OBERHAHN's bare pricing-table key.
+    def chat(_b):
+        return {"id": "c", "model": "gpt-4o-mini-2024-07-18", "usage": {"prompt_tokens": 10, "completion_tokens": 2}}
+
+    client, calls = init_capturing()
+    openai = oberhahn.wrap(fake_openai(chat=chat), {"provider": "openai"})
+    openai.chat.completions.create(model="gpt-4o-mini-2024-07-18", messages=[])
+    client.await_pending()
+
+    assert calls[0].body["spend_details"]["model"] == "gpt-4o-mini"
+
+
 def test_extracts_chat_completion_and_posts_event():
     client, calls = init_capturing()
-    openai = oberhahn.wrap(fake_openai(), "openai")
+    openai = oberhahn.wrap(fake_openai(), {"provider": "openai"})
 
     res = openai.chat.completions.create(model="gpt-4o", messages=[])
     client.await_pending()
@@ -97,7 +111,7 @@ def test_extracts_chat_completion_and_posts_event():
 
 def test_extracts_responses_create():
     client, calls = init_capturing()
-    openai = oberhahn.wrap(fake_openai(), "openai")
+    openai = oberhahn.wrap(fake_openai(), {"provider": "openai"})
 
     res = openai.responses.create(model="gpt-4o", input="hi")
     client.await_pending()
@@ -117,7 +131,7 @@ def test_extracts_responses_create():
 
 def test_extracts_embeddings_no_cache_no_stream():
     client, calls = init_capturing()
-    openai = oberhahn.wrap(fake_openai(), "openai")
+    openai = oberhahn.wrap(fake_openai(), {"provider": "openai"})
 
     res = openai.embeddings.create(model="text-embedding-3-small", input="hi")
     client.await_pending()
@@ -141,8 +155,7 @@ def test_routes_ob_metadata_and_strips_it():
     client, calls = init_capturing()
     openai = oberhahn.wrap(
         fake_openai(chat=chat),
-        "openai",
-        metadata={"environment": "production", "feature": "support_agent"},
+        {"provider": "openai", "metadata": {"environment": "production", "feature": "support_agent"}},
     )
 
     openai.chat.completions.create(
@@ -163,6 +176,61 @@ def test_routes_ob_metadata_and_strips_it():
     }
 
 
+def test_openai_compatible_provider_tags_custom_provider():
+    # An OpenAI-compatible provider (OpenRouter) routes through the OpenAI
+    # adapter but is recorded as custom.provider; model_provider stays "openai".
+    client, calls = init_capturing()
+    openrouter = oberhahn.wrap(fake_openai(), {"provider": "openrouter"})
+
+    openrouter.chat.completions.create(model="gpt-4o", messages=[])
+    client.await_pending()
+
+    body = calls[0].body
+    assert body["spend_details"]["model_provider"] == "openai"
+    assert body["custom"] == {"provider": "openrouter"}
+
+
+def test_native_openai_gets_no_custom_provider():
+    client, calls = init_capturing()
+    openai = oberhahn.wrap(fake_openai(), {"provider": "openai"})
+
+    openai.chat.completions.create(model="gpt-4o", messages=[])
+    client.await_pending()
+
+    assert "custom" not in calls[0].body  # a plain OpenAI call isn't tagged
+
+
+def test_user_metadata_provider_wins_over_alias_tag():
+    client, calls = init_capturing()
+    openrouter = oberhahn.wrap(fake_openai(), {"provider": "openrouter"})
+
+    openrouter.chat.completions.create(
+        model="gpt-4o", messages=[], ob_metadata={"provider": "my_gateway"}
+    )
+    client.await_pending()
+
+    assert calls[0].body["custom"]["provider"] == "my_gateway"
+
+
+def test_forwards_provider_reported_cost():
+    def chat(_b):
+        return {
+            "id": "or_1",
+            "model": "gpt-4o",
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "cost": 0.00042},
+        }
+
+    client, calls = init_capturing()
+    openrouter = oberhahn.wrap(fake_openai(chat=chat), {"provider": "openrouter"})
+
+    openrouter.chat.completions.create(model="gpt-4o", messages=[])
+    client.await_pending()
+
+    # Cost is forwarded both top-level (the field the server reads) and nested.
+    assert calls[0].body["cost"] == 0.00042
+    assert calls[0].body["spend_details"]["cost"] == 0.00042
+
+
 def test_captures_streamed_usage():
     def chat(_body: Dict[str, Any]) -> Any:
         def gen():
@@ -172,7 +240,7 @@ def test_captures_streamed_usage():
         return gen()
 
     client, calls = init_capturing()
-    openai = oberhahn.wrap(fake_openai(chat=chat), "openai")
+    openai = oberhahn.wrap(fake_openai(chat=chat), {"provider": "openai"})
 
     stream = openai.chat.completions.create(model="gpt-4o", stream=True)
     seen = [chunk for chunk in stream]

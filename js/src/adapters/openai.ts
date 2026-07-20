@@ -11,6 +11,8 @@ interface OpenAIUsage {
   total_tokens?: number;
   prompt_tokens_details?: { cached_tokens?: number };
   input_tokens_details?: { cached_tokens?: number };
+  /** OpenAI-compatible gateways (e.g. OpenRouter) report a real cost here. */
+  cost?: number;
 }
 
 /** Build usage from any object that carries a `usage` block + model + id. */
@@ -38,6 +40,10 @@ function usageFrom(
     output_tokens: output,
   };
   if (cacheRead !== undefined) usage.cache_read_tokens = cacheRead;
+  // OpenAI-compatible gateways (e.g. OpenRouter) can report a real cost in the
+  // usage block; forward it when present so the server uses it instead of
+  // deriving from tokens. Plain OpenAI omits it → stays undefined.
+  if (u.cost !== undefined) usage.cost = u.cost;
   if (result?.id) usage.provider_message_id = result.id;
   return usage;
 }

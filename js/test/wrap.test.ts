@@ -47,8 +47,8 @@ describe("wrap()", () => {
   it("is idempotent — double wrap does not double-emit", async () => {
     const { client, calls } = initCapturing();
     const base = fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } }));
-    const once = wrap(base, "openai");
-    const twice = wrap(once, "openai"); // same object, already wrapped
+    const once = wrap(base, { provider: "openai" });
+    const twice = wrap(once, { provider: "openai" }); // same object, already wrapped
 
     expect(twice).toBe(once);
     await once.chat.completions.create({ model: "gpt-4o" } as never);
@@ -58,14 +58,14 @@ describe("wrap()", () => {
 
   it("throws on an unknown provider", () => {
     initCapturing();
-    expect(() => wrap({ chat: {} }, "not-a-provider")).toThrow(/unknown provider/);
+    expect(() => wrap({ chat: {} }, { provider: "not-a-provider" })).toThrow(/unknown provider/);
   });
 
   it("warns and returns the client untouched when it has none of the provider's methods", () => {
     initCapturing();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const weird = { do: () => 1 };
-    expect(wrap(weird, "openai")).toBe(weird);
+    expect(wrap(weird, { provider: "openai" })).toBe(weird);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("nothing patched"));
     warn.mockRestore();
   });
@@ -80,7 +80,7 @@ describe("client behavior", () => {
       onError,
       fetch: (async () => new Response("boom", { status: 400 })) as unknown as typeof fetch,
     });
-    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), { provider: "openai" });
 
     // The wrapped call resolves normally even though ingest 400s.
     await expect(openai.chat.completions.create({ model: "gpt-4o" } as never)).resolves.toBeDefined();
@@ -102,7 +102,7 @@ describe("client behavior", () => {
       maxRetries: 3,
       fetch: fetchMock as unknown as typeof fetch,
     });
-    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), { provider: "openai" });
 
     await openai.chat.completions.create({ model: "gpt-4o" } as never);
     await client.awaitPending();
@@ -111,7 +111,7 @@ describe("client behavior", () => {
 
   it("stamps status=success and duration_ms on a successful event", async () => {
     const { client, calls } = initCapturing();
-    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), { provider: "openai" });
 
     await openai.chat.completions.create({ model: "gpt-4o" } as never);
     await client.awaitPending();
@@ -126,7 +126,7 @@ describe("client behavior", () => {
       fakeOpenAI(() => {
         throw new Error("provider down");
       }),
-      "openai",
+      { provider: "openai" },
     );
 
     await expect(openai.chat.completions.create({ model: "gpt-4o" } as never)).rejects.toThrow("provider down");
@@ -141,7 +141,7 @@ describe("client behavior", () => {
 
   it("flush() drains pending submissions (no client handle needed)", async () => {
     const { calls } = initCapturing();
-    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), { provider: "openai" });
 
     await openai.chat.completions.create({ model: "gpt-4o" } as never);
     await flush(); // module-level public drain
@@ -156,7 +156,7 @@ describe("client behavior", () => {
       enabled: false,
       fetch: fetchMock as unknown as typeof fetch,
     });
-    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), "openai");
+    const openai = wrap(fakeOpenAI(() => ({ id: "x", model: "gpt-4o", usage: { prompt_tokens: 1, completion_tokens: 1 } })), { provider: "openai" });
 
     const res = await openai.chat.completions.create({ model: "gpt-4o" } as never);
     await client.awaitPending();

@@ -22,10 +22,10 @@ from typing import Any, Dict, Optional
 from ._client import OberhahnClient
 from ._config import OnError, Transport, resolve_config
 from ._detect import detect_provider
-from ._registry import ADAPTERS, Provider, adapter_for, known_providers
+from ._registry import ADAPTERS, OPENAI_COMPATIBLE_PROVIDERS, Provider, adapter_for, known_providers
 from ._types import Adapter, MethodSpec, ProviderUsage
 from ._version import __version__
-from ._wrap import patch_client
+from ._wrap import WrapOptions, patch_client
 
 __all__ = [
     "init",
@@ -37,6 +37,9 @@ __all__ = [
     "MethodSpec",
     "Provider",
     "ProviderUsage",
+    "WrapOptions",
+    "OPENAI_COMPATIBLE_PROVIDERS",
+    "known_providers",
     "Transport",
 ]
 
@@ -80,24 +83,26 @@ def _ensure_client() -> OberhahnClient:
     return _global_client
 
 
-def wrap(
-    client: Any,
-    provider: Optional[str] = None,
-    *,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Any:
+def wrap(client: Any, options: Optional[WrapOptions] = None) -> Any:
     """Wrap a provider ``client``: look its adapter up in the registry,
     monkey-patch the usage-bearing methods it declares, and return the same
     client (mutated in place). Idempotent — re-wrapping never double-emits.
 
-    ``provider`` may be omitted to auto-detect it from the client
-    (``wrap(OpenAI())``); detection raises if the client is ambiguous (e.g. an
-    OpenAI-compatible client pointed at an unknown host), so pass it explicitly
-    in that case — ``wrap(client, "openrouter")``.
+    ``options`` is a dict mirroring the JS ``WrapOptions``:
+
+      - ``provider`` — the provider slug. Omit to auto-detect from the client
+        (``wrap(OpenAI())``); detection raises if the client is ambiguous (e.g.
+        an OpenAI-compatible client pointed at an unknown host), so pass it then:
+        ``wrap(client, {"provider": "openrouter"})``.
+      - ``metadata`` — per-client attribution, merged above ``init`` metadata and
+        below per-call ``ob_metadata``.
 
     Raises on an unknown/undetectable provider; warns (and no-ops) if the client
     carries none of that provider's methods.
     """
+    opts = options or {}
+    provider = opts.get("provider")
+    metadata = opts.get("metadata")
     resolved = provider if provider is not None else detect_provider(client)
     adapter = adapter_for(resolved)
     if adapter is None:
@@ -105,7 +110,11 @@ def wrap(
             f'[oberhahn] wrap(): unknown provider "{resolved}". '
             f"Known providers: {', '.join(known_providers())}."
         )
-    return patch_client(client, adapter, _ensure_client(), metadata)
+    # When the requested slug isn't the adapter's own name (e.g. an
+    # OpenAI-compatible provider routed through the OpenAI adapter), record it as
+    # custom.provider so model_provider stays the vendor the adapter reports.
+    provider_tag = resolved if resolved != adapter.name else None
+    return patch_client(client, adapter, _ensure_client(), metadata, provider_tag)
 
 
 def flush() -> None:

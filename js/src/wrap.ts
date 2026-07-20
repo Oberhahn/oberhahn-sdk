@@ -27,6 +27,9 @@ interface EmitContext {
   spec: MethodSpec;
   /** `Date.now()` captured just before the provider call, for `duration_ms`. */
   start: number;
+  /** Routing layer to record as `custom.provider` (e.g. "openrouter") when the
+   * requested slug isn't the adapter's own name. `undefined` for a native call. */
+  providerTag?: string;
 }
 
 /**
@@ -39,11 +42,12 @@ export function patchClient<T extends object>(
   adapter: Adapter,
   ob: OberhahnClient,
   opts: WrapOptions = {},
+  providerTag?: string,
 ): T {
   if ((client as Record<symbol, unknown>)[WRAPPED]) return client;
   let patched = 0;
   for (const spec of adapter.methods) {
-    if (patchMethod(client, spec, ob, adapter.name, opts.metadata)) patched += 1;
+    if (patchMethod(client, spec, ob, adapter.name, opts.metadata, providerTag)) patched += 1;
   }
   if (patched === 0) {
     // eslint-disable-next-line no-console
@@ -64,6 +68,7 @@ function patchMethod(
   ob: OberhahnClient,
   adapterName: string,
   clientMetadata: Record<string, unknown> | undefined,
+  providerTag?: string,
 ): boolean {
   const parts = spec.path.split(".");
   const key = parts.pop() as string;
@@ -88,6 +93,7 @@ function patchMethod(
       args: cleanedArgs,
       spec,
       start: Date.now(),
+      providerTag,
     };
     let result: unknown;
     try {
@@ -174,8 +180,18 @@ function finish(resolved: unknown, isStream: boolean, ctx: EmitContext): unknown
   return resolved;
 }
 
+/** Record the routing layer as `custom.provider` (e.g. "openrouter"), without
+ * overwriting a tag the adapter already set. */
+function tagProvider(usage: ProviderUsage, tag: string | undefined): void {
+  if (!tag) return;
+  if (usage.custom?.provider === undefined) {
+    usage.custom = { ...usage.custom, provider: tag };
+  }
+}
+
 function emit(usage: ProviderUsage | null, ctx: EmitContext): void {
   if (!usage) return;
+  tagProvider(usage, ctx.providerTag);
   const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
   ctx.ob.submit(
     buildEvent(usage, routed, { durationMs: Date.now() - ctx.start, status: "success" }),
@@ -197,6 +213,7 @@ function emitError(ctx: EmitContext): void {
     input_tokens: 0,
     output_tokens: 0,
   };
+  tagProvider(usage, ctx.providerTag);
   const routed = routeMetadata(ctx.ob.metadata, ctx.clientMetadata, ctx.perCall);
   ctx.ob.submit(
     buildEvent(usage, routed, { durationMs: Date.now() - ctx.start, status: "error" }),

@@ -61,6 +61,12 @@ def build_event(
         event["provider_session_id"] = routed["provider_session_id"]
     if usage.provider_message_id:
         event["provider_message_id"] = usage.provider_message_id
+    # Provider-reported cost also goes top-level: the server reads the reported
+    # cost from ``event.cost`` (see oberhahn-loop normalize.ts), so a nested
+    # ``spend_details.cost`` alone would be ignored and the model re-priced
+    # (yielding cost_unknown for unpriceable ids like OpenRouter's).
+    if usage.cost is not None:
+        event["cost"] = usage.cost
     # Adapter-derived custom tags (e.g. ``provider: "openrouter"``) sit *under*
     # user ``ob_metadata`` custom, so an explicit caller value always wins.
     custom = {**(usage.custom or {}), **(routed.get("custom") or {})}

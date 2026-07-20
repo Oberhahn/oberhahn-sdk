@@ -51,7 +51,7 @@ def fake_gemini(
 
 def test_extracts_generate_content_and_posts_event():
     client, calls = init_capturing()
-    gemini = oberhahn.wrap(fake_gemini(), "gemini")
+    gemini = oberhahn.wrap(fake_gemini(), {"provider": "gemini"})
 
     res = gemini.models.generate_content(model="gemini-2.0-flash", contents="hi")
     client.await_pending()
@@ -81,7 +81,7 @@ def test_generate_content_without_cache_omits_split():
         }
 
     client, calls = init_capturing()
-    gemini = oberhahn.wrap(fake_gemini(generate=generate), "gemini")
+    gemini = oberhahn.wrap(fake_gemini(generate=generate), {"provider": "gemini"})
 
     gemini.models.generate_content(model="gemini-2.0-flash", contents="hi")
     client.await_pending()
@@ -105,7 +105,7 @@ def test_routes_ob_metadata_off_kwargs():
         }
 
     client, calls = init_capturing()
-    gemini = oberhahn.wrap(fake_gemini(generate=generate), "gemini")
+    gemini = oberhahn.wrap(fake_gemini(generate=generate), {"provider": "gemini"})
 
     gemini.models.generate_content(
         model="gemini-2.0-flash",
@@ -136,7 +136,7 @@ def test_reads_usage_from_generate_content_stream():
         return gen()
 
     client, calls = init_capturing()
-    gemini = oberhahn.wrap(fake_gemini(stream=stream), "gemini")
+    gemini = oberhahn.wrap(fake_gemini(stream=stream), {"provider": "gemini"})
 
     res = gemini.models.generate_content_stream(model="gemini-2.0-flash", contents="hi")
     seen = [chunk for chunk in res]
@@ -159,7 +159,7 @@ def test_failed_generate_content_emits_error_event():
         raise RuntimeError("gemini down")
 
     client, calls = init_capturing()
-    gemini = oberhahn.wrap(fake_gemini(generate=boom), "gemini")
+    gemini = oberhahn.wrap(fake_gemini(generate=boom), {"provider": "gemini"})
 
     with pytest.raises(RuntimeError, match="gemini down"):
         gemini.models.generate_content(model="gemini-2.0-flash", contents="hi")

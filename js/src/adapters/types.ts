@@ -3,7 +3,7 @@
  *
  * Adding a provider is one file: implement `Adapter`, register it in
  * `registry.ts` under its provider slug. The caller selects it explicitly via
- * `wrap(client, "<name>")`, so there is no structural detection to maintain —
+ * `wrap(client, { provider: "<name>" })`, so there is no structural detection to maintain —
  * the `methods` list alone drives which functions get monkey-patched.
  *
  * Design rule (see the spec): an adapter only *extracts* `{ model,

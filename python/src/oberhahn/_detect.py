@@ -44,5 +44,5 @@ def detect_provider(client: Any) -> Provider:
         return "bedrock"
     raise ValueError(
         "[oberhahn] wrap(): couldn't detect the provider from this client. "
-        'Pass it explicitly, e.g. wrap(client, "openai").'
+        'Pass it explicitly, e.g. wrap(client, {"provider": "openai"}).'
     )
