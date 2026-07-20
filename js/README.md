@@ -117,7 +117,7 @@ import { init, wrap } from "@oberhahn/sdk";
 import OpenAI from "openai";
 
 init({ apiKey: process.env.OBERHAHN_API_KEY });
-const openai = wrap(new OpenAI());       // provider auto-detected
+const openai = wrap(new OpenAI());
 
 // Chat Completions
 await openai.chat.completions.create({

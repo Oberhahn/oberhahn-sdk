@@ -134,7 +134,7 @@ import oberhahn
 from openai import OpenAI
 
 oberhahn.init(api_key="oak_...")
-client = oberhahn.wrap(OpenAI())        # provider auto-detected
+client = oberhahn.wrap(OpenAI())
 
 # Chat Completions
 client.chat.completions.create(
