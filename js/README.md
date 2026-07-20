@@ -20,7 +20,7 @@ only what you use.
 import { init, wrap } from "@oberhahn/sdk";
 import OpenAI from "openai";
 
-init({ apiKey: process.env.OBERHAHN_API_KEY }); // oak_… key → org + consumer scope
+init({ apiKey: process.env.OBERHAHN_API_KEY }); // oak_… 
 
 const openai = wrap(new OpenAI(), {
   metadata: { environment: "production", feature: "support_agent" },

@@ -31,7 +31,7 @@ provider is an optional extra (see `[project.optional-dependencies]` in
 import oberhahn
 from openai import OpenAI
 
-oberhahn.init(api_key="oak_...")   # oak_… key → org + consumer scope
+oberhahn.init(api_key="oak_...")   # oak_… 
 
 # Provider is auto-detected from the client.
 client = oberhahn.wrap(
