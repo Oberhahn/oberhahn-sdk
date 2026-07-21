@@ -6,7 +6,8 @@
     "js": {
       "release-type": "node",
       "component": "js",
-      "package-name": "@oberhahn/sdk"
+      "package-name": "@oberhahn/sdk",
+      "release-as": "0.1.0"
     },
     "python": {
       "release-type": "python",
