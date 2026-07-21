@@ -13,7 +13,7 @@
 # failure is localized to one provider's PR.
 
 # Provider SDKs — exercised by the adapter + contract tests.
-openai==2.45.0
+openai==2.46.0
 anthropic==0.116.0
 boto3==1.43.47
 google-genai==1.16.0
