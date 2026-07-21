@@ -1,6 +1,6 @@
 {
   "name": "@oberhahn/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Thin server-side SDK that wraps native provider SDKs, extracts token usage + attribution, and posts canonical events to OBERHAHN.",
   "type": "module",
   "main": "./dist/index.js",
