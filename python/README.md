@@ -307,3 +307,7 @@ for chunk in stream:
 
 Gemini models are priced under the `google` vendor, so `model_provider` is
 `google` (the `gemini` slug is only the SDK/registry identity).
+
+## License
+
+MIT — see [LICENSE](../LICENSE).

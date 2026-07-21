@@ -14,6 +14,15 @@ Supports OpenAI, Anthropic, AWS Bedrock, Google Gemini, and more — call
 are one-file adapters). Provider SDKs are *optional peer dependencies* — install
 only what you use.
 
+## Install
+
+```sh
+npm install @oberhahn/sdk
+```
+
+Provider SDKs are *optional peer dependencies* — install only the ones you use
+(`openai`, `@anthropic-ai/sdk`, `@aws-sdk/client-bedrock-runtime`, `@google/genai`).
+
 ## Usage
 
 ```ts
@@ -302,3 +311,7 @@ for await (const chunk of stream) {
 
 Gemini models are priced under the `google` vendor, so `model_provider` is
 `google` (the `gemini` slug is only the SDK/registry identity).
+
+## License
+
+MIT — see [LICENSE](../LICENSE).
