@@ -1,0 +1,54 @@
+name: drift-nightly
+# Early-warning drift check against the LATEST provider SDKs (a moving target we
+# don't control). Runs nightly + on demand — NOT on every PR, so an upstream
+# provider release can't red an unrelated PR. If a leg fails, a new provider
+# release broke an adapter; the fix is a code change (or a Dependabot bump that
+# CI will then validate).
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  js-provider-latest:
+    name: js (provider SDKs @ latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - run: npm ci
+      - name: Install latest provider SDKs
+        run: npm install --no-save openai@latest @anthropic-ai/sdk@latest @aws-sdk/client-bedrock-runtime@latest
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+
+  python-provider-latest:
+    name: python (provider SDKs @ latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install with latest provider SDKs
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -U openai anthropic boto3
+          pip install -e .
+      - name: Test
+        run: pytest

@@ -1,0 +1,72 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Per-PR CI: test YOUR code on the supported runtimes with PINNED deps
+# (deterministic — your responsibility). Drift against the *latest* provider
+# SDKs is a moving target you don't control, so it runs on a nightly schedule
+# (drift-nightly.yml) instead of gating every PR.
+jobs:
+  js:
+    name: js (node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - run: npm ci
+      # Typecheck covers src + tests, incl. the provider-SDK drift canaries
+      # (test/contract.test.ts) — a bump that changes a provider's response
+      # shape fails here.
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Build
+        if: matrix.node-version == '22'
+        run: npm run build
+
+  python:
+    name: python (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      # requirements-dev.txt pins the provider SDKs (the versions Dependabot
+      # bumps), so the contract/drift canaries (tests/test_contract.py) run
+      # against them — a bump that changes a provider's response shape fails here.
+      - name: Install
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+      - name: Test
+        run: pytest
+      - name: Build
+        if: matrix.python-version == '3.13'
+        run: |
+          pip install build
+          python -m build

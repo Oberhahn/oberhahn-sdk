@@ -1,0 +1,79 @@
+{
+  "name": "@oberhahn/sdk",
+  "version": "0.1.0",
+  "description": "Thin server-side SDK that wraps native provider SDKs, extracts token usage + attribution, and posts canonical events to OBERHAHN.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "smoke:stream": "npm run build && node scripts/smoke.mjs --stream",
+    "smoke:interactive": "npm run build && node scripts/smoke.mjs --interactive"
+  },
+  "keywords": [
+    "oberhahn",
+    "llm",
+    "observability",
+    "token-usage",
+    "openai",
+    "anthropic",
+    "bedrock",
+    "gemini"
+  ],
+  "license": "MIT",
+  "author": "Pinata",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PinataCloud/oberhahn-sdk.git",
+    "directory": "js"
+  },
+  "homepage": "https://github.com/PinataCloud/oberhahn-sdk/tree/main/js#readme",
+  "bugs": "https://github.com/PinataCloud/oberhahn-sdk/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "*",
+    "@aws-sdk/client-bedrock-runtime": "*",
+    "@google/genai": "*",
+    "openai": "*"
+  },
+  "peerDependenciesMeta": {
+    "openai": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    },
+    "@google/genai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1086.0",
+    "@google/genai": "^1.9.0",
+    "@types/node": "^26.1.1",
+    "openai": "^6.46.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,20 @@
+# Node / JS (js/)
+node_modules
+dist
+*.log
+
+# Python (python/, future)
+__pycache__/
+*.py[cod]
+.venv/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Secrets & local env
+.env
+.env.local
+
+# OS
+.DS_Store
