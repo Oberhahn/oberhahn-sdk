@@ -1,7 +1,8 @@
 # SDK Adapter Contract
 
 What an adapter must produce. This is the **SDK-owned** contract; it is the
-source an agent reads when adding a provider (see `.claude/commands/add-provider.md`).
+source an agent reads when adding a provider (see the Linear playbook
+"Add a provider — OBERHAHN SDK playbook").
 
 > The **event / ingest contract** (`POST /events`, `spend_details`, cost
 > derivation, field aliases, normalization) is **not** defined here — it's owned

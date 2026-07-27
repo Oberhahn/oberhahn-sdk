@@ -13,28 +13,6 @@ pytest                                 # wiring suite + provider-SDK drift canar
 bump them (each bump reruns the drift canaries in CI); the published
 `[openai]` / `[anthropic]` / `[bedrock]` extras stay loose for consumers.
 
-## Adding a provider
-
-Adding a provider is a **one-file adapter** — the core wrapper and event mapping
-never change; there is no detection to write.
-
-Scaffold it:
-
-```sh
-python scripts/new_adapter.py <slug>   # writes the adapter + test stubs, registers it in oberhahn._registry
-```
-
-That leaves TODOs for the extraction logic. Then implement the `Adapter`
-contract (`oberhahn._types`) — a `name` (the provider slug the caller passes to
-`wrap`) plus a list of `MethodSpec`s, each with a `path` to monkey-patch and an
-`extract()` (and `extract_stream()` for streaming methods) — and add a drift
-canary for it in `tests/test_contract.py` so a future provider SDK bump that
-renames a field fails CI.
-
-> There's also an agent-driven flow: the repo ships an `/add-provider` Claude
-> Code command that runs the scaffold, reads the provider SDK's real response
-> shape, implements the extraction, writes tests, and verifies to green.
-
 ## Live smoke tests
 
 One script makes a real (tiny, cheap) provider call against a **deployed**

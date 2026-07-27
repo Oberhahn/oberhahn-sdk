@@ -9,28 +9,6 @@ npm test            # vitest
 npm run build       # emit dist/
 ```
 
-## Adding a provider
-
-Adding a provider is a **one-file adapter** — the core wrapper and event mapping
-never change; there is no detection to write.
-
-Scaffold it:
-
-```sh
-node scripts/new-adapter.mjs <slug>   # writes the adapter + test stubs, registers it in src/registry.ts
-```
-
-That leaves TODOs for the extraction logic. Then implement the `Adapter`
-contract (`src/adapters/types.ts`) — a `name` (the provider slug the caller
-passes to `wrap`) plus a list of `MethodSpec`s, each with a `path` to
-monkey-patch and an `extract()` (and `extractStream()` for streaming methods) —
-and add a drift canary for it in `test/contract.test.ts` so a future provider
-SDK bump that renames a field fails CI.
-
-> There's also an agent-driven flow: the repo ships an `/add-provider` Claude
-> Code command that runs the scaffold, reads the provider SDK's real response
-> shape, implements the extraction, writes tests, and verifies to green.
-
 ## Live smoke tests
 
 Two scripts make a real (tiny, cheap) provider call against a **deployed**
