@@ -31,9 +31,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/PinataCloud/oberhahn-sdk/tree/main/python#readme"
-Repository = "https://github.com/PinataCloud/oberhahn-sdk"
-Issues = "https://github.com/PinataCloud/oberhahn-sdk/issues"
+Homepage = "https://github.com/Oberhahn/oberhahn-sdk/tree/main/python#readme"
+Repository = "https://github.com/Oberhahn/oberhahn-sdk"
+Issues = "https://github.com/Oberhahn/oberhahn-sdk/issues"
 
 [project.optional-dependencies]
 # Provider SDKs are optional peer dependencies — install only what you use.
