@@ -1,0 +1,40 @@
+name: npm-publish
+on:
+  release:
+    types: [published]
+
+# Publishes @oberhahn/sdk to npm when release-please's JS release is published.
+# release-please tags JS releases `js-vX.Y.Z` (include-component-in-tag), so we
+# gate on that prefix — the shared python-vX.Y.Z releases are ignored here.
+# Requires the NPM_TOKEN secret (an automation token for the @oberhahn org with
+# publish rights). publishConfig.access=public in js/package.json handles scope.
+jobs:
+  npm-publish:
+    if: startsWith(github.event.release.tag_name, 'js-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Publish
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
