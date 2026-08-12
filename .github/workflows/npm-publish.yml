@@ -1,16 +1,18 @@
 name: npm-publish
 on:
-  release:
-    types: [published]
+  # Invoked by release-please.yml when the JS release is created. A `release:
+  # published` trigger can't be used: release-please creates the Release with
+  # GITHUB_TOKEN, and events from GITHUB_TOKEN don't start new workflow runs.
+  workflow_call:
+  # Manual publish from the current ref (backfill / re-run). Publishes whatever
+  # version is in js/package.json on the selected branch.
+  workflow_dispatch:
 
-# Publishes @oberhahn/sdk to npm when release-please's JS release is published.
-# release-please tags JS releases `js-vX.Y.Z` (include-component-in-tag), so we
-# gate on that prefix — the shared python-vX.Y.Z releases are ignored here.
-# Requires the NPM_TOKEN secret (an automation token for the @oberhahn org with
-# publish rights). publishConfig.access=public in js/package.json handles scope.
+# Publishes @oberhahn/sdk to npm. Requires the NPM_TOKEN secret (an automation
+# token for the @oberhahn org with publish rights). publishConfig.access=public
+# in js/package.json handles scope; --provenance needs id-token: write.
 jobs:
   npm-publish:
-    if: startsWith(github.event.release.tag_name, 'js-v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
