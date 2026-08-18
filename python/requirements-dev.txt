@@ -21,4 +21,4 @@ google-genai==1.16.0
 # Test + build tooling (grouped as "sdk-tooling" in dependabot.yml).
 pytest==9.1.1
 build==1.5.1
-hatchling==1.31.0
+hatchling==1.32.0
